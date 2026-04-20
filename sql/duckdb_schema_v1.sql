@@ -139,3 +139,44 @@ CREATE TABLE continuous_daily (
     builder_version VARCHAR NOT NULL,
     snapshot_id VARCHAR NOT NULL
 );
+
+CREATE TABLE cpd_daily (
+    feature_set_id VARCHAR NOT NULL,
+    as_of_date DATE NOT NULL,
+    root VARCHAR NOT NULL,
+    cpd_window_days BIGINT NOT NULL,
+    cpd_score DOUBLE,
+    cpd_age_days BIGINT,
+    cpd_location_index BIGINT,
+    cpd_is_valid BOOLEAN NOT NULL,
+    cpd_method VARCHAR NOT NULL,
+    builder_version VARCHAR NOT NULL,
+    snapshot_id VARCHAR NOT NULL
+);
+
+CREATE TABLE features_daily (
+    feature_set_id VARCHAR NOT NULL,
+    as_of_date DATE NOT NULL,
+    root VARCHAR NOT NULL,
+    series_id VARCHAR NOT NULL,
+    ret_1 DOUBLE,
+    ret_21 DOUBLE,
+    ret_63 DOUBLE,
+    ret_126 DOUBLE,
+    ret_252 DOUBLE,
+    macd_8_24 DOUBLE,
+    macd_16_48 DOUBLE,
+    macd_32_96 DOUBLE,
+    cpd21_score DOUBLE,
+    cpd21_age DOUBLE,
+    cpd63_score DOUBLE,
+    cpd63_age DOUBLE,
+    vol_20_60 DOUBLE,
+    vol_60_252 DOUBLE,
+    annualized_vol_60 DOUBLE,
+    is_complete BOOLEAN NOT NULL,
+    warmup_status VARCHAR NOT NULL,
+    feature_hash VARCHAR NOT NULL,
+    builder_version VARCHAR NOT NULL,
+    snapshot_id VARCHAR NOT NULL
+);

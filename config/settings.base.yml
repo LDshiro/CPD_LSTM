@@ -102,3 +102,45 @@ continuous:
     - missing
   max_abs_daily_return_warning: 0.20
   max_abs_daily_return_error: 0.50
+
+features:
+  feature_set_id: features_v1
+  builder_version: features_builder_v1
+  series_id: v1_back_ratio_settle
+  price_column: adj_settle_price
+  return_column: daily_return
+  annualization_factor: 252
+  warmup_days: 252
+  epsilon: 1.0e-12
+  horizons:
+    normalized_returns: [1, 21, 63, 126, 252]
+  volatility:
+    estimator: ewm_std
+    span_days: 60
+    min_periods: 20
+    ratio_pairs:
+      - [20, 60]
+      - [60, 252]
+  macd:
+    method: log_price_ema_diff_zscore
+    pairs:
+      - [8, 24]
+      - [16, 48]
+      - [32, 96]
+    zscore_span_days: 252
+    zscore_min_periods: 63
+  cpd:
+    builder_version: cpd_builder_v1
+    method: two_sample_t_v1
+    windows: [21, 63]
+    min_segment_days: 5
+    min_segment_fraction: 0.25
+    input_return: vol_scaled_daily_return
+    score_transform: one_minus_exp_half_t2
+  clipping:
+    normalized_return_abs_max: 20.0
+    macd_abs_max: 20.0
+    vol_ratio_min: 0.05
+    vol_ratio_max: 20.0
+    cpd_score_min: 0.0
+    cpd_score_max: 1.0

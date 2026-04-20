@@ -21,6 +21,7 @@ help:
 	@echo "  make wp4-smoke-vendor  - run optional WP4 live vendor smoke test"
 	@echo "  make wp5-roll-smoke-offline - run WP5 offline roll-engine tests"
 	@echo "  make wp6-continuous-smoke-offline - run WP6 offline continuous-builder tests"
+	@echo "  make wp7-features-smoke-offline - run WP7 offline features/CPD tests"
 	@echo "  make install-torch-cu128 - optional PyTorch CUDA 12.8 install"
 
 setup:
@@ -63,6 +64,9 @@ wp5-roll-smoke-offline:
 
 wp6-continuous-smoke-offline:
 	$(ACTIVATE) && pytest -q tests/unit/test_continuous_builder.py tests/smoke/test_wp6_continuous_smoke.py
+
+wp7-features-smoke-offline:
+	$(ACTIVATE) && pytest -q tests/unit/test_cpd.py tests/unit/test_features_builder.py tests/integration/test_wp7_features_cli.py
 
 install-torch-cu128:
 	$(ACTIVATE) && pip install --index-url https://download.pytorch.org/whl/cu128 torch torchvision torchaudio

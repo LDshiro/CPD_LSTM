@@ -326,3 +326,94 @@ tables:
       - name: snapshot_id
         dtype: string
         nullable: false
+  cpd_daily:
+    columns:
+      - name: feature_set_id
+        dtype: string
+        nullable: false
+      - name: as_of_date
+        dtype: date
+        nullable: false
+      - name: root
+        dtype: string
+        nullable: false
+      - name: cpd_window_days
+        dtype: int64
+        nullable: false
+      - name: cpd_score
+        dtype: double
+      - name: cpd_age_days
+        dtype: int64
+      - name: cpd_location_index
+        dtype: int64
+      - name: cpd_is_valid
+        dtype: bool
+        nullable: false
+      - name: cpd_method
+        dtype: string
+        nullable: false
+      - name: builder_version
+        dtype: string
+        nullable: false
+      - name: snapshot_id
+        dtype: string
+        nullable: false
+  features_daily:
+    columns:
+      - name: feature_set_id
+        dtype: string
+        nullable: false
+      - name: as_of_date
+        dtype: date
+        nullable: false
+      - name: root
+        dtype: string
+        nullable: false
+      - name: series_id
+        dtype: string
+        nullable: false
+      - name: ret_1
+        dtype: double
+      - name: ret_21
+        dtype: double
+      - name: ret_63
+        dtype: double
+      - name: ret_126
+        dtype: double
+      - name: ret_252
+        dtype: double
+      - name: macd_8_24
+        dtype: double
+      - name: macd_16_48
+        dtype: double
+      - name: macd_32_96
+        dtype: double
+      - name: cpd21_score
+        dtype: double
+      - name: cpd21_age
+        dtype: double
+      - name: cpd63_score
+        dtype: double
+      - name: cpd63_age
+        dtype: double
+      - name: vol_20_60
+        dtype: double
+      - name: vol_60_252
+        dtype: double
+      - name: annualized_vol_60
+        dtype: double
+      - name: is_complete
+        dtype: bool
+        nullable: false
+      - name: warmup_status
+        dtype: string
+        nullable: false
+      - name: feature_hash
+        dtype: string
+        nullable: false
+      - name: builder_version
+        dtype: string
+        nullable: false
+      - name: snapshot_id
+        dtype: string
+        nullable: false

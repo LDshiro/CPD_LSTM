@@ -1,6 +1,6 @@
 # Data Schema v1.0
 
-- Status: Frozen for WP4-WP6 implementation
+- Status: Frozen for WP4-WP7 implementation
 - Effective date: 2026-04-20
 
 ## Purpose
@@ -8,8 +8,9 @@
 WP4 fixes the first physical storage contract for the raw Databento ingest layer and the first curated daily layer.
 WP5 extends that contract with deterministic roll outputs derived from WP4 curated data.
 WP6 extends that contract with a deterministic signal-only continuous series derived from WP4/WP5 curated data.
+WP7 extends that contract with deterministic CPD outputs and model-ready features derived from WP6 continuous data.
 The canonical persisted format remains partitioned Parquet datasets. The DuckDB SQL file in `sql/duckdb_schema_v1.sql`
-exists as an executable schema contract, not as a requirement to persist a `.duckdb` file during WP4-WP6.
+exists as an executable schema contract, not as a requirement to persist a `.duckdb` file during WP4-WP7.
 
 ## Tables
 
@@ -45,6 +46,14 @@ One row per `(as_of_date, root)` that maps the strategy root to the actual trada
 
 One row per `(series_id, as_of_date, root)` for the canonical signal-generation series. WP6 v1 uses a backward ratio-adjusted settlement methodology driven by `lead_map` and `roll_events`, not vendor continuous prices. `continuous_daily` is signal-only and must never be used as a broker-facing contract identifier.
 
+### `cpd_daily`
+
+One row per `(feature_set_id, as_of_date, root, cpd_window_days)` for long-form changepoint outputs. WP7 v1 stores CPD severity, raw changepoint age, and location using the deterministic `two_sample_t_v1` backend.
+
+### `features_daily`
+
+One row per `(feature_set_id, as_of_date, root)` for the fixed wide model-input vector. WP7 uses `continuous_daily.adj_settle_price` as the authoritative price, recomputes adjusted-price returns internally, and stores normalized CPD ages for model consumption.
+
 ## Physical notes
 
 - Raw vendor parquet is immutable under `data/raw/databento/...`.
@@ -52,4 +61,5 @@ One row per `(series_id, as_of_date, root)` for the canonical signal-generation 
 - Curated parquet is written snapshot-by-snapshot under `data/curated/contract_master` and `data/curated/contracts_daily`.
 - WP5 roll outputs are written snapshot-by-snapshot under `data/curated/lead_map` and `data/curated/roll_events`, partitioned by year within each snapshot.
 - WP6 continuous outputs are written under `data/curated/continuous_daily/series_id=<series_id>/snapshot_id=<snapshot_id>`, partitioned by year within each snapshot.
+- WP7 feature outputs are written under `data/features/cpd_daily/feature_set_id=<feature_set_id>/snapshot_id=<snapshot_id>` and `data/features/features_daily/feature_set_id=<feature_set_id>/snapshot_id=<snapshot_id>`, partitioned by year within each snapshot.
 - `quality_flags` is stored as a sorted list of strings.

@@ -182,6 +182,103 @@ class ContinuousConfig(BaseModel):
         return self
 
 
+class FeatureHorizonsConfig(BaseModel):
+    normalized_returns: list[int] = Field(default_factory=lambda: [1, 21, 63, 126, 252])
+
+    @model_validator(mode="after")
+    def validate_horizons(self) -> "FeatureHorizonsConfig":
+        if not self.normalized_returns:
+            raise ValueError("normalized_returns must not be empty")
+        if any(horizon <= 0 for horizon in self.normalized_returns):
+            raise ValueError("normalized_returns must be positive")
+        return self
+
+
+class FeatureVolatilityConfig(BaseModel):
+    estimator: Literal["ewm_std"] = "ewm_std"
+    span_days: int = Field(default=60, ge=2)
+    min_periods: int = Field(default=20, ge=2)
+    ratio_pairs: list[tuple[int, int]] = Field(default_factory=lambda: [(20, 60), (60, 252)])
+
+    @model_validator(mode="after")
+    def validate_pairs(self) -> "FeatureVolatilityConfig":
+        if not self.ratio_pairs:
+            raise ValueError("ratio_pairs must not be empty")
+        for left, right in self.ratio_pairs:
+            if left <= 0 or right <= 0 or left >= right:
+                raise ValueError("ratio_pairs must contain positive increasing pairs")
+        return self
+
+
+class FeatureMacdConfig(BaseModel):
+    method: Literal["log_price_ema_diff_zscore"] = "log_price_ema_diff_zscore"
+    pairs: list[tuple[int, int]] = Field(default_factory=lambda: [(8, 24), (16, 48), (32, 96)])
+    zscore_span_days: int = Field(default=252, ge=2)
+    zscore_min_periods: int = Field(default=63, ge=2)
+
+    @model_validator(mode="after")
+    def validate_pairs(self) -> "FeatureMacdConfig":
+        if not self.pairs:
+            raise ValueError("macd pairs must not be empty")
+        for fast, slow in self.pairs:
+            if fast <= 0 or slow <= 0 or fast >= slow:
+                raise ValueError("macd pairs must contain positive increasing spans")
+        return self
+
+
+class FeatureCpdConfig(BaseModel):
+    builder_version: Literal["cpd_builder_v1"] = "cpd_builder_v1"
+    method: Literal["two_sample_t_v1"] = "two_sample_t_v1"
+    windows: list[int] = Field(default_factory=lambda: [21, 63])
+    min_segment_days: int = Field(default=5, ge=1)
+    min_segment_fraction: float = Field(default=0.25, gt=0.0, lt=0.5)
+    input_return: Literal["vol_scaled_daily_return"] = "vol_scaled_daily_return"
+    score_transform: Literal["one_minus_exp_half_t2"] = "one_minus_exp_half_t2"
+
+    @model_validator(mode="after")
+    def validate_windows(self) -> "FeatureCpdConfig":
+        if sorted(self.windows) != self.windows:
+            raise ValueError("cpd windows must be sorted")
+        if len(set(self.windows)) != len(self.windows):
+            raise ValueError("cpd windows must be unique")
+        if any(window <= 0 for window in self.windows):
+            raise ValueError("cpd windows must be positive")
+        return self
+
+
+class FeatureClippingConfig(BaseModel):
+    normalized_return_abs_max: float = Field(default=20.0, gt=0.0)
+    macd_abs_max: float = Field(default=20.0, gt=0.0)
+    vol_ratio_min: float = Field(default=0.05, gt=0.0)
+    vol_ratio_max: float = Field(default=20.0, gt=0.0)
+    cpd_score_min: float = Field(default=0.0, ge=0.0, le=1.0)
+    cpd_score_max: float = Field(default=1.0, ge=0.0, le=1.0)
+
+    @model_validator(mode="after")
+    def validate_bounds(self) -> "FeatureClippingConfig":
+        if self.vol_ratio_max < self.vol_ratio_min:
+            raise ValueError("vol_ratio_max must be >= vol_ratio_min")
+        if self.cpd_score_max < self.cpd_score_min:
+            raise ValueError("cpd_score_max must be >= cpd_score_min")
+        return self
+
+
+class FeaturesConfig(BaseModel):
+    feature_set_id: str = "features_v1"
+    builder_version: Literal["features_builder_v1"] = "features_builder_v1"
+    series_id: str = "v1_back_ratio_settle"
+    price_column: Literal["adj_settle_price"] = "adj_settle_price"
+    return_column: Literal["daily_return"] = "daily_return"
+    annualization_factor: int = Field(default=252, ge=1)
+    warmup_days: int = Field(default=252, ge=1)
+    epsilon: float = Field(default=1.0e-12, gt=0.0)
+    horizons: FeatureHorizonsConfig = Field(default_factory=FeatureHorizonsConfig)
+    volatility: FeatureVolatilityConfig = Field(default_factory=FeatureVolatilityConfig)
+    macd: FeatureMacdConfig = Field(default_factory=FeatureMacdConfig)
+    cpd: FeatureCpdConfig = Field(default_factory=FeatureCpdConfig)
+    clipping: FeatureClippingConfig = Field(default_factory=FeatureClippingConfig)
+
+
 class AppConfig(BaseModel):
     runtime: RuntimeConfig = Field(default_factory=RuntimeConfig)
     risk: RiskConfig = Field(default_factory=RiskConfig)
@@ -190,6 +287,7 @@ class AppConfig(BaseModel):
     monitoring: MonitoringConfig = Field(default_factory=MonitoringConfig)
     roll: RollConfig = Field(default_factory=RollConfig)
     continuous: ContinuousConfig = Field(default_factory=ContinuousConfig)
+    features: FeaturesConfig = Field(default_factory=FeaturesConfig)
 
 
 

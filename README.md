@@ -52,6 +52,24 @@ python -m cpdshadow.cli continuous qa \
   --snapshot-id <snapshot_id>
 ```
 
+## WP7 Features / CPD Builder
+
+WP7 では WP6 `continuous_daily` から `cpd_daily` と `features_daily` を構築します。
+
+```bash
+python -m cpdshadow.cli features build \
+  --snapshot-id <snapshot_id> \
+  --start 2024-01-02 \
+  --end 2024-03-29 \
+  --series-id v1_back_ratio_settle \
+  --feature-set-id features_v1 \
+  --roots ES,NQ
+
+python -m cpdshadow.cli features qa \
+  --snapshot-id <snapshot_id> \
+  --feature-set-id features_v1
+```
+
 ## 注意
 
-この段階では Step 4 以降の詳細実装（銘柄正本、特徴量、CPD、モデル学習、IBKR アダプタ等）はまだ含みません。今回は **仕様凍結と repo skeleton の固定** がゴールです。
+この段階では、WP4-WP7 までのデータ基盤、roll、continuous、feature/CPD 生成は含みますが、**モデル学習、TSMOM シグナル、IBKR アダプタ、注文執行** はまだ含みません。運用ゴールは引き続き **再現可能で安定した shadow execution** です。
