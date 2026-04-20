@@ -1,0 +1,63 @@
+version: 1.0.0
+vendor: databento
+client:
+  dataset: GLBX.MDP3
+  key_env: DATABENTO_API_KEY
+  default_stype_in: parent
+  default_stype_out: raw_symbol
+  request_timeout_seconds: 300
+  max_retries: 3
+  retry_backoff_seconds: 5
+  max_symbols_per_request: 20
+  price_type: float
+  pretty_ts: true
+  map_symbols: true
+
+requests:
+  default_start_date: "2010-01-01"
+  chunking:
+    bootstrap: year
+    incremental: month
+  schemas:
+    definition:
+      enabled: true
+      required: true
+    statistics:
+      enabled: true
+      required: true
+    ohlcv-1d:
+      enabled: true
+      required: false
+      purpose: fallback_close_and_ohlc
+
+cost_control:
+  require_preflight: true
+  require_execute_flag_for_paid_pull: true
+  default_max_cost_usd: 5.00
+  smoke_max_days: 10
+
+raw_storage:
+  root: data/raw/databento
+  write_mode: immutable
+  compression: zstd
+
+curated_storage:
+  contract_master: data/curated/contract_master
+  contracts_daily: data/curated/contracts_daily
+
+normalization:
+  keep_only_roots_from_instruments_yml: true
+  keep_only_outright_futures: true
+  settlement_priority:
+    - final_settlement
+    - preliminary_settlement
+    - close_fallback
+  statistics_trade_date_field: ts_ref
+  ohlcv_trade_date_field: ts_event
+  unavailable_price_policy: mark_missing
+
+quality:
+  fail_on_empty_required_schema: true
+  fail_on_unknown_root: true
+  warn_on_missing_settlement: true
+  warn_on_zero_volume_lead_candidates: true

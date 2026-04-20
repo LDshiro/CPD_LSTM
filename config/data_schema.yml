@@ -1,0 +1,200 @@
+version: 1.0.0
+tables:
+  run_registry:
+    columns:
+      - name: run_id
+        dtype: string
+        nullable: false
+      - name: run_type
+        dtype: string
+        nullable: false
+      - name: command_name
+        dtype: string
+        nullable: false
+      - name: status
+        dtype: string
+        nullable: false
+      - name: started_at_utc
+        dtype: timestamp_tz
+        nullable: false
+      - name: finished_at_utc
+        dtype: timestamp_tz
+      - name: data_snapshot_id
+        dtype: string
+      - name: config_hash
+        dtype: string
+        nullable: false
+      - name: git_commit
+        dtype: string
+        nullable: false
+      - name: notes
+        dtype: string_list
+      - name: artifact_path
+        dtype: string
+  data_snapshot_registry:
+    columns:
+      - name: snapshot_id
+        dtype: string
+        nullable: false
+      - name: run_id
+        dtype: string
+        nullable: false
+      - name: vendor
+        dtype: string
+        nullable: false
+      - name: dataset
+        dtype: string
+        nullable: false
+      - name: start_date
+        dtype: date
+        nullable: false
+      - name: end_date
+        dtype: date
+        nullable: false
+      - name: requested_roots
+        dtype: string_list
+        nullable: false
+      - name: requested_schemas
+        dtype: string_list
+        nullable: false
+      - name: request_plan_hash
+        dtype: string
+        nullable: false
+      - name: manifest_hash
+        dtype: string
+        nullable: false
+      - name: created_at_utc
+        dtype: timestamp_tz
+        nullable: false
+  data_file_registry:
+    columns:
+      - name: file_id
+        dtype: string
+        nullable: false
+      - name: snapshot_id
+        dtype: string
+        nullable: false
+      - name: run_id
+        dtype: string
+        nullable: false
+      - name: logical_table
+        dtype: string
+        nullable: false
+      - name: source_schema
+        dtype: string
+      - name: path
+        dtype: string
+        nullable: false
+      - name: content_sha256
+        dtype: string
+        nullable: false
+      - name: row_count
+        dtype: int64
+        nullable: false
+      - name: min_trade_date
+        dtype: date
+      - name: max_trade_date
+        dtype: date
+      - name: request_params_hash
+        dtype: string
+        nullable: false
+      - name: cached
+        dtype: bool
+        nullable: false
+      - name: created_at_utc
+        dtype: timestamp_tz
+        nullable: false
+  contract_master:
+    columns:
+      - name: dataset
+        dtype: string
+        nullable: false
+      - name: instrument_id
+        dtype: int64
+        nullable: false
+      - name: raw_symbol
+        dtype: string
+        nullable: false
+      - name: root
+        dtype: string
+        nullable: false
+      - name: exchange
+        dtype: string
+      - name: currency
+        dtype: string
+      - name: expiration_date
+        dtype: date
+      - name: last_trade_date
+        dtype: date
+      - name: first_trade_date
+        dtype: date
+      - name: multiplier
+        dtype: double
+      - name: tick_size
+        dtype: double
+      - name: instrument_class
+        dtype: string
+        nullable: false
+      - name: valid_from_utc
+        dtype: timestamp_tz
+        nullable: false
+      - name: valid_to_utc
+        dtype: timestamp_tz
+      - name: definition_hash
+        dtype: string
+        nullable: false
+      - name: ingested_at_utc
+        dtype: timestamp_tz
+        nullable: false
+  contracts_daily:
+    columns:
+      - name: trade_date
+        dtype: date
+        nullable: false
+      - name: root
+        dtype: string
+        nullable: false
+      - name: raw_symbol
+        dtype: string
+        nullable: false
+      - name: dataset
+        dtype: string
+        nullable: false
+      - name: instrument_id
+        dtype: int64
+        nullable: false
+      - name: open_price
+        dtype: double
+      - name: high_price
+        dtype: double
+      - name: low_price
+        dtype: double
+      - name: close_price
+        dtype: double
+      - name: settle_price
+        dtype: double
+      - name: settle_status
+        dtype: string
+        nullable: false
+      - name: volume
+        dtype: double
+      - name: open_interest
+        dtype: double
+      - name: price_source
+        dtype: string
+        nullable: false
+      - name: volume_source
+        dtype: string
+        nullable: false
+      - name: available_at_utc
+        dtype: timestamp_tz
+      - name: ingested_at_utc
+        dtype: timestamp_tz
+        nullable: false
+      - name: quality_flags
+        dtype: string_list
+      - name: override_id
+        dtype: string
+      - name: snapshot_id
+        dtype: string
+        nullable: false

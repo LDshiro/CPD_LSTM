@@ -1,0 +1,187 @@
+from __future__ import annotations
+
+from datetime import date
+from pathlib import Path
+import json
+import os
+
+from rich.console import Console
+from rich.table import Table
+import typer
+
+from cpdshadow.config import load_data_schema_yaml, load_databento_ingest_yaml
+from cpdshadow.ids import canonical_json_bytes
+from cpdshadow.ingest.databento_raw import DatabentoIngestService
+from cpdshadow.instruments import load_instrument_master
+from cpdshadow.vendor.databento_client import HistoricalDatabentoClient
+
+
+app = typer.Typer(no_args_is_help=True)
+ingest_app = typer.Typer(no_args_is_help=True)
+databento_app = typer.Typer(no_args_is_help=True)
+console = Console()
+
+app.add_typer(ingest_app, name="ingest")
+ingest_app.add_typer(databento_app, name="databento")
+
+
+def _build_service(repo_root: Path, *, client: HistoricalDatabentoClient | None = None) -> DatabentoIngestService:
+    ingest_config = load_databento_ingest_yaml(repo_root / "config" / "databento.ingest.yml")
+    data_schema = load_data_schema_yaml(repo_root / "config" / "data_schema.yml")
+    instrument_master = load_instrument_master(repo_root / "config" / "instruments.yml")
+    return DatabentoIngestService(
+        repo_root=repo_root,
+        ingest_config=ingest_config,
+        data_schema=data_schema,
+        instrument_master=instrument_master,
+        client=client,
+    )
+
+
+def _make_databento_client(repo_root: Path) -> HistoricalDatabentoClient:
+    ingest_config = load_databento_ingest_yaml(repo_root / "config" / "databento.ingest.yml")
+    return HistoricalDatabentoClient(
+        api_key=os.getenv(ingest_config.client.key_env),
+        max_retries=ingest_config.client.max_retries,
+        retry_backoff_seconds=ingest_config.client.retry_backoff_seconds,
+    )
+
+
+def _parse_csv(value: str | None) -> list[str] | None:
+    if value is None or not value.strip():
+        return None
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+def _default_output(repo_root: Path, prefix: str) -> Path:
+    return repo_root / "artifacts" / "wp4" / f"{prefix}.json"
+
+
+@databento_app.command("plan")
+def databento_plan(
+    start: date = typer.Option(...),
+    end: date = typer.Option(...),
+    roots: str | None = typer.Option(None),
+    schemas: str | None = typer.Option(None),
+    output: Path | None = typer.Option(None),
+    repo_root: Path = typer.Option(Path("."), hidden=True),
+) -> None:
+    service = _build_service(repo_root)
+    plan = service.plan(
+        start_date=start,
+        end_date=end,
+        roots=_parse_csv(roots),
+        schemas=_parse_csv(schemas),
+    )
+    artifact = {
+        "dataset": plan.dataset,
+        "start": plan.start,
+        "end": plan.end,
+        "roots": list(plan.roots),
+        "schemas": list(plan.schemas),
+        "chunk_mode": plan.chunk_mode,
+        "config_hash": plan.config_hash,
+        "request_plan_hash": plan.request_plan_hash,
+        "requests": [request.__dict__ for request in plan.requests],
+    }
+    target = output or _default_output(repo_root, f"plan_{start.isoformat()}_{end.isoformat()}")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(canonical_json_bytes(artifact))
+    console.print(f"Wrote plan artifact to {target}")
+
+
+@databento_app.command("smoke")
+def databento_smoke(
+    start: date = typer.Option(...),
+    end: date = typer.Option(...),
+    roots: str | None = typer.Option(None),
+    schemas: str | None = typer.Option(None),
+    max_cost_usd: float = typer.Option(1.0),
+    execute: bool = typer.Option(False, help="Required to call Databento."),
+    skip_preflight: bool = typer.Option(False),
+    force: bool = typer.Option(False),
+    repo_root: Path = typer.Option(Path("."), hidden=True),
+) -> None:
+    service = _build_service(repo_root, client=_make_databento_client(repo_root))
+    max_days = service.ingest_config.cost_control.smoke_max_days
+    if (end - start).days > max_days:
+        raise typer.BadParameter(f"smoke range must be <= {max_days} days")
+    plan = service.plan(
+        start_date=start,
+        end_date=end,
+        roots=_parse_csv(roots),
+        schemas=_parse_csv(schemas),
+        chunk_mode="month",
+    )
+    artifact = service.execute(
+        command_name="smoke",
+        plan=plan,
+        max_cost_usd=max_cost_usd,
+        execute=execute,
+        skip_preflight=skip_preflight,
+        force=force,
+    )
+    console.print(json.dumps(artifact, indent=2, default=str))
+
+
+@databento_app.command("run")
+def databento_run(
+    start: date = typer.Option(...),
+    end: date = typer.Option(...),
+    roots: str | None = typer.Option(None),
+    roots_from_config: bool = typer.Option(False),
+    schemas: str | None = typer.Option(None),
+    max_cost_usd: float = typer.Option(5.0),
+    execute: bool = typer.Option(False),
+    skip_preflight: bool = typer.Option(False),
+    force: bool = typer.Option(False),
+    repo_root: Path = typer.Option(Path("."), hidden=True),
+) -> None:
+    service = _build_service(repo_root, client=_make_databento_client(repo_root))
+    roots_value = None if roots_from_config else _parse_csv(roots)
+    plan = service.plan(
+        start_date=start,
+        end_date=end,
+        roots=roots_value,
+        schemas=_parse_csv(schemas),
+    )
+    artifact = service.execute(
+        command_name="run",
+        plan=plan,
+        max_cost_usd=max_cost_usd,
+        execute=execute,
+        skip_preflight=skip_preflight,
+        force=force,
+    )
+    console.print(json.dumps(artifact, indent=2, default=str))
+
+
+@databento_app.command("normalize")
+def databento_normalize(
+    snapshot_id: str = typer.Option(...),
+    repo_root: Path = typer.Option(Path("."), hidden=True),
+) -> None:
+    service = _build_service(repo_root)
+    artifact = service.normalize_snapshot(snapshot_id=snapshot_id)
+    console.print(json.dumps(artifact, indent=2, default=str))
+
+
+@databento_app.command("qa")
+def databento_qa(
+    snapshot_id: str = typer.Option(...),
+    repo_root: Path = typer.Option(Path("."), hidden=True),
+) -> None:
+    service = _build_service(repo_root)
+    report = service.qa_snapshot(snapshot_id=snapshot_id)
+    table = Table(title=f"WP4 QA {snapshot_id}")
+    table.add_column("Severity")
+    table.add_column("Code")
+    table.add_column("Message")
+    for issue in report.issues:
+        table.add_row(issue.severity, issue.code, issue.message)
+    console.print(table)
+    console.print(json.dumps(report.to_dict(), indent=2, default=str))
+
+
+if __name__ == "__main__":
+    app()

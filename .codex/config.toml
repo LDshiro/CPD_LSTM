@@ -1,0 +1,54 @@
+#:schema https://developers.openai.com/codex/config-schema.json
+
+model = "gpt-5.4"
+personality = "pragmatic"
+model_reasoning_effort = "high"
+approval_policy = "on-request"
+approvals_reviewer = "user"
+sandbox_mode = "workspace-write"
+web_search = "cached"
+project_root_markers = [".git"]
+
+[sandbox_workspace_write]
+network_access = true
+
+[shell_environment_policy]
+inherit = "core"
+include_only = [
+  "PATH",
+  "HOME",
+  "SHELL",
+  "TERM",
+  "LANG",
+  "LC_*",
+  "USER",
+  "LOGNAME",
+  "PWD",
+  "PYTHON*",
+  "VIRTUAL_ENV",
+  "CONDA_PREFIX",
+  "UV_*",
+  "PIP_*",
+  "CUDA_*",
+  "NVIDIA_*",
+  "TZ",
+  "DATABENTO_*",
+  "IBKR_*",
+  "TWS_*"
+]
+
+[features]
+shell_snapshot = true
+unified_exec = true
+multi_agent = false
+undo = false
+
+[history]
+persistence = "save-all"
+max_bytes = 104857600
+
+[profiles.review]
+model = "gpt-5.4"
+model_reasoning_effort = "high"
+approval_policy = "on-request"
+web_search = "cached"

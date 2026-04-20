@@ -1,0 +1,76 @@
+runtime:
+  timezone: Asia/Tokyo
+  log_level: INFO
+
+risk:
+  target_annual_vol: 0.10
+  vol_lookback_days: 60
+  active_signal_threshold: 0.05
+  single_root_soft_cap_fraction_of_nav: 0.12
+  asset_class_soft_cap_fraction_of_nav: 0.35
+  initial_margin_soft_cap_fraction_of_nav: 0.35
+  initial_margin_hard_cap_fraction_of_nav: 0.50
+  contract_rounding: half_away_from_zero
+  post_rounding_recheck: true
+  max_integer_reduction_steps: 500
+
+portfolio:
+  risk_budget_mode: equal_risk_sqrt_active
+  estimate_trade_costs_in_target_layer: true
+  zero_target_on_invalid_inputs: true
+
+costs:
+  default_broker: research_default
+  commission_per_contract_side_usd:
+    equity_index: 1.50
+    rates: 1.35
+    fx: 1.35
+    metals: 1.85
+    energy: 2.35
+    agriculture: 1.85
+  slippage_ticks_per_side:
+    equity_index: 0.50
+    rates: 0.50
+    fx: 0.75
+    metals: 0.75
+    energy: 1.00
+    agriculture: 1.00
+  roll_extra_ticks_per_contract_side:
+    equity_index: 0.25
+    rates: 0.25
+    fx: 0.25
+    metals: 0.50
+    energy: 0.75
+    agriculture: 0.50
+
+monitoring:
+  data_quality:
+    max_missing_settlement_roots: 0
+    max_missing_volume_roots: 0
+    max_contract_map_conflicts: 0
+    max_duplicate_feature_rows: 0
+    max_feature_missing_fraction: 0.01
+    max_stale_feature_roots: 0
+  model_health:
+    require_artifact_hash_match: true
+    require_cpd_service_success: true
+    max_nonfinite_signal_roots: 0
+    max_signal_saturation_fraction: 0.35
+    min_cross_sectional_signal_std: 0.02
+    max_feature_psi: 0.20
+  risk_health:
+    realized_vol_warning: 0.12
+    realized_vol_reduce_only: 0.14
+    margin_usage_warning: 0.35
+    margin_usage_reduce_only: 0.50
+    max_position_reconciliation_mismatches: 0
+  execution_health:
+    require_broker_state_known: true
+    max_order_reject_count: 0
+    min_fill_ratio_warning: 0.80
+    max_slippage_ratio_warning: 1.25
+    max_slippage_ratio_fallback: 1.50
+  strategy_health:
+    min_cpd_60d_net_sharpe_before_review: -0.25
+    max_consecutive_cpd_underperformance_windows: 2
+    min_reversal_edge_usd: 0.0
