@@ -284,3 +284,45 @@ tables:
       - name: snapshot_id
         dtype: string
         nullable: false
+  continuous_daily:
+    columns:
+      - name: series_id
+        dtype: string
+        nullable: false
+      - name: as_of_date
+        dtype: date
+        nullable: false
+      - name: root
+        dtype: string
+        nullable: false
+      - name: lead_raw_symbol
+        dtype: string
+        nullable: false
+      - name: raw_settle_price
+        dtype: double
+      - name: adj_settle_price
+        dtype: double
+      - name: adj_factor
+        dtype: double
+        nullable: false
+      - name: daily_return
+        dtype: double
+      - name: settle_status
+        dtype: string
+        nullable: false
+      - name: roll_flag
+        dtype: bool
+        nullable: false
+      - name: roll_event_id
+        dtype: string
+      - name: is_usable_for_signal
+        dtype: bool
+        nullable: false
+      - name: quality_flags
+        dtype: string_list
+      - name: builder_version
+        dtype: string
+        nullable: false
+      - name: snapshot_id
+        dtype: string
+        nullable: false

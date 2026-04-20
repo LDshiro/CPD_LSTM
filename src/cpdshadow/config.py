@@ -159,6 +159,29 @@ class RollConfig(BaseModel):
     no_rollback: bool = True
 
 
+class ContinuousConfig(BaseModel):
+    series_id: str = "v1_back_ratio_settle"
+    builder_version: Literal["continuous_builder_v1"] = "continuous_builder_v1"
+    strict_roll_ratio: bool = True
+    allow_close_fallback: bool = True
+    allowed_settle_statuses: list[str] = Field(default_factory=lambda: [
+        "final",
+        "preliminary",
+        "close_fallback",
+    ])
+    blocked_settle_statuses: list[str] = Field(default_factory=lambda: ["missing"])
+    max_abs_daily_return_warning: float = Field(default=0.20, ge=0.0)
+    max_abs_daily_return_error: float = Field(default=0.50, ge=0.0)
+
+    @model_validator(mode="after")
+    def validate_thresholds(self) -> "ContinuousConfig":
+        if self.max_abs_daily_return_error < self.max_abs_daily_return_warning:
+            raise ValueError(
+                "max_abs_daily_return_error must be >= max_abs_daily_return_warning"
+            )
+        return self
+
+
 class AppConfig(BaseModel):
     runtime: RuntimeConfig = Field(default_factory=RuntimeConfig)
     risk: RiskConfig = Field(default_factory=RiskConfig)
@@ -166,6 +189,7 @@ class AppConfig(BaseModel):
     costs: CostsConfig = Field(default_factory=CostsConfig)
     monitoring: MonitoringConfig = Field(default_factory=MonitoringConfig)
     roll: RollConfig = Field(default_factory=RollConfig)
+    continuous: ContinuousConfig = Field(default_factory=ContinuousConfig)
 
 
 

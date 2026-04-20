@@ -88,3 +88,17 @@ roll:
     - expiration_date
   calendar_source: root_contracts_daily_dates
   no_rollback: true
+
+continuous:
+  series_id: v1_back_ratio_settle
+  builder_version: continuous_builder_v1
+  strict_roll_ratio: true
+  allow_close_fallback: true
+  allowed_settle_statuses:
+    - final
+    - preliminary
+    - close_fallback
+  blocked_settle_statuses:
+    - missing
+  max_abs_daily_return_warning: 0.20
+  max_abs_daily_return_error: 0.50

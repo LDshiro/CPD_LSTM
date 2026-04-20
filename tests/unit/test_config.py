@@ -12,6 +12,8 @@ def test_load_base_config() -> None:
     assert cfg.monitoring.model_health.max_feature_psi == 0.20
     assert cfg.roll.policy_version == "volume3_hardroll_v1"
     assert cfg.roll.effective_lag_trading_days == 1
+    assert cfg.continuous.series_id == "v1_back_ratio_settle"
+    assert cfg.continuous.builder_version == "continuous_builder_v1"
 
 
 def test_load_wp4_ingest_config_and_schema() -> None:
@@ -22,3 +24,4 @@ def test_load_wp4_ingest_config_and_schema() -> None:
     assert "contracts_daily" in schema_cfg.tables
     assert "lead_map" in schema_cfg.tables
     assert "roll_events" in schema_cfg.tables
+    assert "continuous_daily" in schema_cfg.tables

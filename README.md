@@ -37,6 +37,21 @@ python -m cpdshadow.cli roll-engine qa \
   --snapshot-id <snapshot_id>
 ```
 
+## WP6 Continuous Builder
+
+WP6 では WP4/WP5 curated snapshot から signal-only の `continuous_daily` を構築します。
+
+```bash
+python -m cpdshadow.cli continuous build \
+  --snapshot-id <snapshot_id> \
+  --start 2024-01-02 \
+  --end 2024-03-29 \
+  --roots ES,NQ
+
+python -m cpdshadow.cli continuous qa \
+  --snapshot-id <snapshot_id>
+```
+
 ## 注意
 
 この段階では Step 4 以降の詳細実装（銘柄正本、特徴量、CPD、モデル学習、IBKR アダプタ等）はまだ含みません。今回は **仕様凍結と repo skeleton の固定** がゴールです。

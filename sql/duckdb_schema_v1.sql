@@ -121,3 +121,21 @@ CREATE TABLE lead_map (
     builder_version VARCHAR NOT NULL,
     snapshot_id VARCHAR NOT NULL
 );
+
+CREATE TABLE continuous_daily (
+    series_id VARCHAR NOT NULL,
+    as_of_date DATE NOT NULL,
+    root VARCHAR NOT NULL,
+    lead_raw_symbol VARCHAR NOT NULL,
+    raw_settle_price DOUBLE,
+    adj_settle_price DOUBLE,
+    adj_factor DOUBLE NOT NULL,
+    daily_return DOUBLE,
+    settle_status VARCHAR NOT NULL,
+    roll_flag BOOLEAN NOT NULL,
+    roll_event_id VARCHAR,
+    is_usable_for_signal BOOLEAN NOT NULL,
+    quality_flags VARCHAR[],
+    builder_version VARCHAR NOT NULL,
+    snapshot_id VARCHAR NOT NULL
+);
