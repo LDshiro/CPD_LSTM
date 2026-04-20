@@ -83,3 +83,41 @@ CREATE TABLE contracts_daily (
     override_id VARCHAR,
     snapshot_id VARCHAR NOT NULL
 );
+
+CREATE TABLE roll_events (
+    roll_event_id VARCHAR NOT NULL,
+    root VARCHAR NOT NULL,
+    from_raw_symbol VARCHAR NOT NULL,
+    to_raw_symbol VARCHAR NOT NULL,
+    trigger_date DATE NOT NULL,
+    effective_date DATE NOT NULL,
+    roll_reason VARCHAR NOT NULL,
+    front_volume_tminus1 DOUBLE,
+    next_volume_tminus1 DOUBLE,
+    confirmation_count BIGINT NOT NULL,
+    from_settle DOUBLE,
+    to_settle DOUBLE,
+    ratio_adjustment DOUBLE,
+    basis_at_roll DOUBLE,
+    builder_version VARCHAR NOT NULL,
+    override_id VARCHAR
+);
+
+CREATE TABLE lead_map (
+    as_of_date DATE NOT NULL,
+    root VARCHAR NOT NULL,
+    roll_policy_version VARCHAR NOT NULL,
+    lead_raw_symbol VARCHAR NOT NULL,
+    next_raw_symbol VARCHAR,
+    prev_lead_raw_symbol VARCHAR,
+    roll_flag BOOLEAN NOT NULL,
+    roll_event_id VARCHAR,
+    days_to_expiry BIGINT,
+    front_volume_tminus1 DOUBLE,
+    next_volume_tminus1 DOUBLE,
+    confirmation_count BIGINT NOT NULL,
+    hard_roll_deadline DATE,
+    selection_reason VARCHAR NOT NULL,
+    builder_version VARCHAR NOT NULL,
+    snapshot_id VARCHAR NOT NULL
+);

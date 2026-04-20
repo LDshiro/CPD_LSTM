@@ -198,3 +198,89 @@ tables:
       - name: snapshot_id
         dtype: string
         nullable: false
+  roll_events:
+    columns:
+      - name: roll_event_id
+        dtype: string
+        nullable: false
+      - name: root
+        dtype: string
+        nullable: false
+      - name: from_raw_symbol
+        dtype: string
+        nullable: false
+      - name: to_raw_symbol
+        dtype: string
+        nullable: false
+      - name: trigger_date
+        dtype: date
+        nullable: false
+      - name: effective_date
+        dtype: date
+        nullable: false
+      - name: roll_reason
+        dtype: string
+        nullable: false
+      - name: front_volume_tminus1
+        dtype: double
+      - name: next_volume_tminus1
+        dtype: double
+      - name: confirmation_count
+        dtype: int64
+        nullable: false
+      - name: from_settle
+        dtype: double
+      - name: to_settle
+        dtype: double
+      - name: ratio_adjustment
+        dtype: double
+      - name: basis_at_roll
+        dtype: double
+      - name: builder_version
+        dtype: string
+        nullable: false
+      - name: override_id
+        dtype: string
+  lead_map:
+    columns:
+      - name: as_of_date
+        dtype: date
+        nullable: false
+      - name: root
+        dtype: string
+        nullable: false
+      - name: roll_policy_version
+        dtype: string
+        nullable: false
+      - name: lead_raw_symbol
+        dtype: string
+        nullable: false
+      - name: next_raw_symbol
+        dtype: string
+      - name: prev_lead_raw_symbol
+        dtype: string
+      - name: roll_flag
+        dtype: bool
+        nullable: false
+      - name: roll_event_id
+        dtype: string
+      - name: days_to_expiry
+        dtype: int64
+      - name: front_volume_tminus1
+        dtype: double
+      - name: next_volume_tminus1
+        dtype: double
+      - name: confirmation_count
+        dtype: int64
+        nullable: false
+      - name: hard_roll_deadline
+        dtype: date
+      - name: selection_reason
+        dtype: string
+        nullable: false
+      - name: builder_version
+        dtype: string
+        nullable: false
+      - name: snapshot_id
+        dtype: string
+        nullable: false

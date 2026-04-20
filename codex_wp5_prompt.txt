@@ -1,0 +1,39 @@
+You are working in the CPD_LSTM repo. Implement WP5: Roll Engine / Lead Map Builder v1.
+
+Read docs/spec_v1.md, docs/data_schema_v1.md, sql/duckdb_schema_v1.sql, config/data_schema.yml, config/instruments.yml, config/settings.base.yml, and the WP4 ingest/storage code first.
+
+Implement a deterministic roll engine that builds data/curated/lead_map and data/curated/roll_events from contract_master and contracts_daily. Use policy_version=volume3_hardroll_v1 and builder_version=roll_engine_v1.
+
+Core policy:
+- choose actual raw tradable outright futures contracts, never continuous symbols
+- use root observed trading dates from contracts_daily as the v1 calendar
+- volume roll: next volume > lead volume for 3 consecutive completed root trading dates; if D3 is the third confirmation, new lead starts on the next root trading date D4
+- hard roll: force roll N root trading sessions before last_trade_date, else expiration_date; N comes from config/instruments.yml
+- hard roll wins over pending volume roll if earlier
+- no rollback after a contract has been rolled away
+- missing volume resets the volume confirmation count
+- initial lead must skip contracts already at/past hard-roll deadline
+
+Suggested files:
+- src/cpdshadow/rolls.py
+- src/cpdshadow/ingest/roll_engine.py or current CLI style
+- docs/roll_engine_v1.md
+- docs/decisions/0006-roll-engine-v1.md
+- tests/unit/test_roll_engine.py
+- tests/integration/test_roll_engine_io.py
+
+Required QA failures:
+- no eligible initial lead
+- lead passes hard-roll deadline while next eligible exists
+- non-monotonic expiry order
+- rollback to old contract
+- lead_raw_symbol missing from contract_master
+- next_raw_symbol == lead_raw_symbol
+- missing roll_event referenced by lead_map
+- volume_3day effective_date <= trigger_date
+- duplicate primary keys
+- continuous/synthetic symbol selected as lead
+
+Add an offline Make target such as make wp5-roll-smoke-offline. Normal tests must never call Databento or IBKR. Use synthetic fixtures. make test must pass.
+
+Follow the detailed instructions in docs/codex_wp5_roll_engine_instructions.md if present; if not present, create it from this prompt and proceed.

@@ -74,3 +74,17 @@ monitoring:
     min_cpd_60d_net_sharpe_before_review: -0.25
     max_consecutive_cpd_underperformance_windows: 2
     min_reversal_edge_usd: 0.0
+
+roll:
+  policy_version: volume3_hardroll_v1
+  builder_version: roll_engine_v1
+  volume_confirmation_days: 3
+  effective_lag_trading_days: 1
+  volume_column: volume
+  volume_trigger_operator: next_strictly_greater_than_front
+  missing_volume_resets_confirmation: true
+  hard_roll_anchor_preference:
+    - last_trade_date
+    - expiration_date
+  calendar_source: root_contracts_daily_dates
+  no_rollback: true

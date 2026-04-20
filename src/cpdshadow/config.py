@@ -143,12 +143,30 @@ class MonitoringConfig(BaseModel):
     strategy_health: StrategyHealthMonitoringConfig = Field(default_factory=StrategyHealthMonitoringConfig)
 
 
+class RollConfig(BaseModel):
+    policy_version: Literal["volume3_hardroll_v1"] = "volume3_hardroll_v1"
+    builder_version: Literal["roll_engine_v1"] = "roll_engine_v1"
+    volume_confirmation_days: int = Field(default=3, ge=1)
+    effective_lag_trading_days: int = Field(default=1, ge=1)
+    volume_column: str = "volume"
+    volume_trigger_operator: Literal["next_strictly_greater_than_front"] = "next_strictly_greater_than_front"
+    missing_volume_resets_confirmation: bool = True
+    hard_roll_anchor_preference: list[str] = Field(default_factory=lambda: [
+        "last_trade_date",
+        "expiration_date",
+    ])
+    calendar_source: Literal["root_contracts_daily_dates"] = "root_contracts_daily_dates"
+    no_rollback: bool = True
+
+
 class AppConfig(BaseModel):
     runtime: RuntimeConfig = Field(default_factory=RuntimeConfig)
     risk: RiskConfig = Field(default_factory=RiskConfig)
     portfolio: PortfolioConfig = Field(default_factory=PortfolioConfig)
     costs: CostsConfig = Field(default_factory=CostsConfig)
     monitoring: MonitoringConfig = Field(default_factory=MonitoringConfig)
+    roll: RollConfig = Field(default_factory=RollConfig)
+
 
 
 class DatabentoClientConfig(BaseModel):

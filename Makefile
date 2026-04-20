@@ -19,6 +19,7 @@ help:
 	@echo "  make wp4-plan-smoke    - build a deterministic WP4 plan artifact"
 	@echo "  make wp4-smoke-offline - run WP4 offline tests"
 	@echo "  make wp4-smoke-vendor  - run optional WP4 live vendor smoke test"
+	@echo "  make wp5-roll-smoke-offline - run WP5 offline roll-engine tests"
 	@echo "  make install-torch-cu128 - optional PyTorch CUDA 12.8 install"
 
 setup:
@@ -55,6 +56,9 @@ wp4-smoke-offline:
 
 wp4-smoke-vendor:
 	$(ACTIVATE) && CPDSHADOW_RUN_VENDOR_TESTS=1 pytest -q tests/integration/test_wp4_vendor_smoke.py
+
+wp5-roll-smoke-offline:
+	$(ACTIVATE) && pytest -q tests/unit/test_roll_engine.py tests/integration/test_roll_engine_io.py
 
 install-torch-cu128:
 	$(ACTIVATE) && pip install --index-url https://download.pytorch.org/whl/cu128 torch torchvision torchaudio

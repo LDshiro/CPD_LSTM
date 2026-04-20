@@ -22,6 +22,21 @@ make check-env
 make test
 ```
 
+## WP5 Roll Engine
+
+WP5 では WP4 curated snapshot から `lead_map` と `roll_events` を構築します。
+
+```bash
+python -m cpdshadow.cli roll-engine build \
+  --start 2024-01-02 \
+  --end 2024-01-08 \
+  --snapshot-id <snapshot_id> \
+  --roots ES
+
+python -m cpdshadow.cli roll-engine qa \
+  --snapshot-id <snapshot_id>
+```
+
 ## 注意
 
 この段階では Step 4 以降の詳細実装（銘柄正本、特徴量、CPD、モデル学習、IBKR アダプタ等）はまだ含みません。今回は **仕様凍結と repo skeleton の固定** がゴールです。

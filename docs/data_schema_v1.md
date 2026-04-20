@@ -1,13 +1,14 @@
 # Data Schema v1.0
 
-- Status: Frozen for WP4 implementation
+- Status: Frozen for WP4-WP5 implementation
 - Effective date: 2026-04-20
 
 ## Purpose
 
 WP4 fixes the first physical storage contract for the raw Databento ingest layer and the first curated daily layer.
+WP5 extends that contract with deterministic roll outputs derived from WP4 curated data.
 The canonical persisted format remains partitioned Parquet datasets. The DuckDB SQL file in `sql/duckdb_schema_v1.sql`
-exists as an executable schema contract, not as a requirement to persist a `.duckdb` file during WP4.
+exists as an executable schema contract, not as a requirement to persist a `.duckdb` file during WP4-WP5.
 
 ## Tables
 
@@ -31,9 +32,18 @@ Normalized point-in-time definitions for outright futures only. Logical uniquene
 
 Normalized daily contract data keyed by `(trade_date, root, raw_symbol)`. `statistics` is the primary source for settlement, cleared volume, and open interest. `ohlcv-1d` only fills missing OHLC/close/volume and can provide explicit `close_fallback`.
 
+### `roll_events`
+
+One row per lead-contract transition. Contains deterministic roll identifiers, trigger/effective dates, roll reason, prior-day volume context, and optional settlement-based ratio helpers for WP6 continuous construction.
+
+### `lead_map`
+
+One row per `(as_of_date, root)` that maps the strategy root to the actual tradable listed futures contract selected under the fixed roll policy. `snapshot_id` is inherited from the source WP4 curated snapshot.
+
 ## Physical notes
 
 - Raw vendor parquet is immutable under `data/raw/databento/...`.
 - Registry parquet is append-only under `data/meta/...`.
 - Curated parquet is written snapshot-by-snapshot under `data/curated/contract_master` and `data/curated/contracts_daily`.
+- WP5 roll outputs are written snapshot-by-snapshot under `data/curated/lead_map` and `data/curated/roll_events`, partitioned by year within each snapshot.
 - `quality_flags` is stored as a sorted list of strings.

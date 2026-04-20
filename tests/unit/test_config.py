@@ -10,6 +10,8 @@ def test_load_base_config() -> None:
     assert cfg.risk.target_annual_vol == 0.10
     assert cfg.costs.roll_extra_ticks_per_contract_side.energy == 0.75
     assert cfg.monitoring.model_health.max_feature_psi == 0.20
+    assert cfg.roll.policy_version == "volume3_hardroll_v1"
+    assert cfg.roll.effective_lag_trading_days == 1
 
 
 def test_load_wp4_ingest_config_and_schema() -> None:
@@ -18,3 +20,5 @@ def test_load_wp4_ingest_config_and_schema() -> None:
     assert ingest_cfg.client.dataset == "GLBX.MDP3"
     assert ingest_cfg.requests.schemas["definition"].required is True
     assert "contracts_daily" in schema_cfg.tables
+    assert "lead_map" in schema_cfg.tables
+    assert "roll_events" in schema_cfg.tables

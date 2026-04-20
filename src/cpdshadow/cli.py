@@ -9,9 +9,10 @@ from rich.console import Console
 from rich.table import Table
 import typer
 
-from cpdshadow.config import load_data_schema_yaml, load_databento_ingest_yaml
+from cpdshadow.config import load_data_schema_yaml, load_databento_ingest_yaml, load_yaml
 from cpdshadow.ids import canonical_json_bytes
 from cpdshadow.ingest.databento_raw import DatabentoIngestService
+from cpdshadow.ingest.roll_engine import RollEngineService
 from cpdshadow.instruments import load_instrument_master
 from cpdshadow.vendor.databento_client import HistoricalDatabentoClient
 
@@ -19,10 +20,12 @@ from cpdshadow.vendor.databento_client import HistoricalDatabentoClient
 app = typer.Typer(no_args_is_help=True)
 ingest_app = typer.Typer(no_args_is_help=True)
 databento_app = typer.Typer(no_args_is_help=True)
+roll_engine_app = typer.Typer(no_args_is_help=True)
 console = Console()
 
 app.add_typer(ingest_app, name="ingest")
 ingest_app.add_typer(databento_app, name="databento")
+app.add_typer(roll_engine_app, name="roll-engine")
 
 
 def _build_service(repo_root: Path, *, client: HistoricalDatabentoClient | None = None) -> DatabentoIngestService:
@@ -44,6 +47,19 @@ def _make_databento_client(repo_root: Path) -> HistoricalDatabentoClient:
         api_key=os.getenv(ingest_config.client.key_env),
         max_retries=ingest_config.client.max_retries,
         retry_backoff_seconds=ingest_config.client.retry_backoff_seconds,
+    )
+
+
+def _build_roll_service(repo_root: Path, data_dir: Path) -> RollEngineService:
+    app_config = load_yaml(repo_root / "config" / "settings.base.yml")
+    data_schema = load_data_schema_yaml(repo_root / "config" / "data_schema.yml")
+    instrument_master = load_instrument_master(repo_root / "config" / "instruments.yml")
+    return RollEngineService(
+        repo_root=repo_root,
+        data_root=data_dir,
+        app_config=app_config,
+        data_schema=data_schema,
+        instrument_master=instrument_master,
     )
 
 
@@ -181,6 +197,47 @@ def databento_qa(
         table.add_row(issue.severity, issue.code, issue.message)
     console.print(table)
     console.print(json.dumps(report.to_dict(), indent=2, default=str))
+
+
+@roll_engine_app.command("build")
+def roll_engine_build(
+    start: date = typer.Option(...),
+    end: date = typer.Option(...),
+    snapshot_id: str = typer.Option(...),
+    roots: str | None = typer.Option(None),
+    data_dir: Path = typer.Option(Path("data")),
+    overwrite: bool = typer.Option(False),
+    repo_root: Path = typer.Option(Path("."), hidden=True),
+) -> None:
+    service = _build_roll_service(repo_root, data_dir)
+    artifact = service.build(
+        snapshot_id=snapshot_id,
+        start_date=start,
+        end_date=end,
+        roots=_parse_csv(roots),
+        overwrite=overwrite,
+    )
+    console.print(json.dumps(artifact, indent=2, default=str))
+
+
+@roll_engine_app.command("qa")
+def roll_engine_qa(
+    snapshot_id: str = typer.Option(...),
+    data_dir: Path = typer.Option(Path("data")),
+    repo_root: Path = typer.Option(Path("."), hidden=True),
+) -> None:
+    service = _build_roll_service(repo_root, data_dir)
+    report = service.qa(snapshot_id=snapshot_id)
+    table = Table(title=f"WP5 Roll QA {snapshot_id}")
+    table.add_column("Severity")
+    table.add_column("Code")
+    table.add_column("Message")
+    for issue in report.issues:
+        table.add_row(issue.severity, issue.code, issue.message)
+    console.print(table)
+    console.print(json.dumps(report.to_dict(), indent=2, default=str))
+    if report.has_errors:
+        raise typer.Exit(code=1)
 
 
 if __name__ == "__main__":
