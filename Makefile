@@ -25,6 +25,7 @@ help:
 	@echo "  make wp8-signal-smoke-offline - run WP8 offline signal tests"
 	@echo "  make wp9-cpd-lstm-smoke-offline - run WP9 offline CPD-LSTM tests"
 	@echo "  make wp10-walkforward-smoke-offline - run WP10 offline walk-forward tests"
+	@echo "  make wp11-model-rc-smoke-offline - run WP11 offline model RC tests"
 	@echo "  make install-torch-cu128 - optional PyTorch CUDA 12.8 install"
 
 setup:
@@ -79,6 +80,9 @@ wp9-cpd-lstm-smoke-offline:
 
 wp10-walkforward-smoke-offline:
 	$(ACTIVATE) && pytest -q tests/unit/test_walkforward_windows.py tests/unit/test_research_metrics.py tests/unit/test_reversal_bucket.py tests/unit/test_walkforward_pnl_alignment.py tests/integration/test_wp10_walkforward_smoke.py
+
+wp11-model-rc-smoke-offline:
+	$(ACTIVATE) && pytest -q tests/unit/test_model_release.py tests/unit/test_promotion_gates.py tests/smoke/test_wp11_model_rc_smoke.py
 
 install-torch-cu128:
 	$(ACTIVATE) && bash scripts/install_torch_cuda128.sh

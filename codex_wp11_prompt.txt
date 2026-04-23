@@ -1,0 +1,26 @@
+Implement WP11: Model RC / Promotion Decision v1.
+
+Read docs/codex_wp11_model_rc_promotion_instructions.md and implement it carefully. Create a branch named wp11-model-rc-promotion.
+
+Core goal: consume WP10 walk-forward evidence and WP9 model artifacts, evaluate fixed promotion gates, and produce an auditable Shadow-only release candidate package under artifacts/releases/model_rc/<release_id>/.
+
+Do not train models, recompute walk-forward results, connect to Databento/IBKR, generate orders, or approve live trading.
+
+Expected outputs include:
+- config/model_release_gates.yml
+- src/cpdshadow/model_release.py and/or promotion.py
+- CLI commands: model-rc package/evaluate and model-rc qa
+- docs/model_rc_v1.md
+- docs/decisions/0011-model-rc-promotion-v1.md
+- docs/wp11_model_rc_review_checklist.md
+- tests for pass/fail/defer/tsmom_only decisions
+- make wp11-model-rc-smoke-offline
+
+Important rules:
+- decision states are exactly shadow_candidate, defer_research, reject_candidate, tsmom_only
+- shadow_candidate is Shadow-only and always requires human approval
+- performance gate failures are valid outcomes, not program errors
+- use deterministic JSON and SHA-256 hashing
+- keep all tests offline and synthetic by default
+
+Run make test and make wp11-model-rc-smoke-offline when done.
