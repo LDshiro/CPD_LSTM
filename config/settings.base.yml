@@ -241,3 +241,42 @@ models:
       min_epochs: 1
       roots: [ES, NQ]
       n_days: 180
+
+walkforward:
+  frequency: quarterly
+  train_years: 10
+  val_years: 2
+  min_train_days: 1260
+  min_val_days: 252
+  min_oos_days: 20
+  sequence_length: 63
+  label_horizon_days: 1
+  global_seed: 1729
+  nav_usd: 1000000.0
+  initial_margin_fraction_of_notional: 0.10
+  report_bootstrap:
+    block_length_days: 20
+    n_bootstrap_samples: 200
+    min_observations: 30
+  reversal_bucket:
+    threshold_quantile: 0.95
+    cooldown_days: 5
+    horizons: [1, 5, 20]
+  gates:
+    full_oos_net_sharpe_min: 0.90
+    last_8_quarters_net_sharpe_min: 0.60
+    max_drawdown_vs_tsmom_max_multiple: 1.50
+    reversal_5d_diff_min: 0.0
+    reversal_20d_diff_min: 0.0
+    cost_to_gross_pnl_max: 0.50
+    min_completed_folds: 8
+  smoke:
+    train_years: 2
+    val_years: 1
+    min_train_days: 120
+    min_val_days: 40
+    min_oos_days: 10
+    max_epochs: 1
+    min_epochs: 1
+    roots: [ES, NQ]
+    n_days: 1100

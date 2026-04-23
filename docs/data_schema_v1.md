@@ -1,6 +1,6 @@
 # Data Schema v1.0
 
-- Status: Frozen for WP4-WP9 implementation
+- Status: Frozen for WP4-WP10 implementation
 - Effective date: 2026-04-20
 
 ## Purpose
@@ -11,8 +11,10 @@ WP6 extends that contract with a deterministic signal-only continuous series der
 WP7 extends that contract with deterministic CPD outputs and model-ready features derived from WP6 continuous data.
 WP8 extends that contract with deterministic strategy outputs derived from WP7 feature data.
 WP9 extends that contract with candidate CPD-LSTM training artifacts and CPD-LSTM inference signals.
+WP10 adds run-local walk-forward evaluation outputs for OOS comparison, target sizing, PnL,
+reversal buckets, aggregate metrics, readiness gates, and reports.
 The canonical persisted format remains partitioned Parquet datasets. The DuckDB SQL file in `sql/duckdb_schema_v1.sql`
-exists as an executable schema contract, not as a requirement to persist a `.duckdb` file during WP4-WP9.
+exists as an executable schema contract, not as a requirement to persist a `.duckdb` file during WP4-WP10.
 
 ## Tables
 
@@ -68,6 +70,13 @@ One row per CPD-LSTM train invocation. WP9 records candidate training windows, s
 
 One row per CPD-LSTM artifact. WP9 registers artifacts as `candidate` only; model promotion to `shadow` is reserved for later work.
 
+### WP10 run-local research outputs
+
+WP10 does not add global canonical WP3 tables. It writes run-local Parquet files under
+`data/research/walkforward/<run_id>/`, including `walkforward_windows`, OOS signals, OOS targets,
+OOS PnL, fold metrics, aggregate metrics, reversal events, reversal bucket metrics, `gates.json`,
+`manifest.json`, and JSON/Markdown reports.
+
 ## Physical notes
 
 - Raw vendor parquet is immutable under `data/raw/databento/...`.
@@ -80,4 +89,6 @@ One row per CPD-LSTM artifact. WP9 registers artifacts as `candidate` only; mode
 - WP9 training rows are written under `data/research/training_runs/strategy_id=cpd_lstm/year=<YYYY>` and model registry rows under `data/research/model_registry/strategy_id=cpd_lstm/model_id=<model_id>`.
 - WP9 model artifacts are written under `artifacts/models/cpd_lstm/<model_id>`.
 - WP9 CPD-LSTM inference reuses the WP8 signal output layout with `strategy_id=cpd_lstm`.
+- WP10 walk-forward outputs are written under `data/research/walkforward/<run_id>` and are
+  evaluation artifacts, not broker-facing order instructions.
 - `quality_flags` is stored as a sorted list of strings.

@@ -6,6 +6,7 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
+import pandas as pd
 import typer
 from rich.console import Console
 from rich.table import Table
@@ -18,6 +19,15 @@ from cpdshadow.ingest.features_builder import FeaturesBuilderService
 from cpdshadow.ingest.roll_engine import RollEngineService
 from cpdshadow.ingest.signals_builder import SignalsBuilderService
 from cpdshadow.instruments import load_instrument_master
+from cpdshadow.research.reporting import write_walkforward_report
+from cpdshadow.research.walkforward import (
+    WalkforwardContext,
+    evaluate_oos_signals,
+    plan_walkforward_windows,
+    qa_walkforward_run,
+    run_walkforward,
+)
+from cpdshadow.storage.parquet_io import read_parquet_dataset, write_parquet_part
 from cpdshadow.vendor.databento_client import HistoricalDatabentoClient
 
 app = typer.Typer(no_args_is_help=True)
@@ -30,6 +40,8 @@ signals_app = typer.Typer(no_args_is_help=True)
 tsmom_app = typer.Typer(no_args_is_help=True)
 models_app = typer.Typer(no_args_is_help=True)
 cpd_lstm_app = typer.Typer(no_args_is_help=True)
+research_app = typer.Typer(no_args_is_help=True)
+walkforward_app = typer.Typer(no_args_is_help=True)
 console = Console()
 
 app.add_typer(ingest_app, name="ingest")
@@ -41,6 +53,8 @@ app.add_typer(signals_app, name="signals")
 signals_app.add_typer(tsmom_app, name="tsmom")
 app.add_typer(models_app, name="models")
 models_app.add_typer(cpd_lstm_app, name="cpd-lstm")
+app.add_typer(research_app, name="research")
+research_app.add_typer(walkforward_app, name="walkforward")
 
 
 def _build_service(
@@ -158,6 +172,42 @@ def _build_cpd_lstm_service(
         signals_output_root=output_dir,
         artifact_root=artifact_dir,
     )
+
+
+def _build_walkforward_context(
+    *,
+    repo_root: Path,
+    features_path: Path,
+    continuous_path: Path,
+    settings_path: Path,
+    instruments_path: Path,
+    snapshot_id: str,
+    feature_set_id: str,
+    series_id: str,
+    roots: str,
+    run_id: str,
+    output_dir: Path,
+) -> WalkforwardContext:
+    settings_resolved = _resolve_repo_path(repo_root, settings_path)
+    return WalkforwardContext(
+        repo_root=repo_root,
+        app_config=load_yaml(settings_resolved),
+        data_schema=load_data_schema_yaml(repo_root / "config" / "data_schema.yml"),
+        instrument_master=load_instrument_master(_resolve_repo_path(repo_root, instruments_path)),
+        features_path=_resolve_repo_path(repo_root, features_path),
+        continuous_path=_resolve_repo_path(repo_root, continuous_path),
+        snapshot_id=snapshot_id,
+        feature_set_id=feature_set_id,
+        series_id=series_id,
+        roots=tuple(_parse_csv(roots) or ()),
+        run_id=run_id,
+        output_dir=_resolve_repo_path(repo_root, output_dir),
+        settings_path=settings_resolved,
+    )
+
+
+def _resolve_repo_path(repo_root: Path, path: Path) -> Path:
+    return path if path.is_absolute() else repo_root / path
 
 
 def _parse_csv(value: str | None) -> list[str] | None:
@@ -662,6 +712,219 @@ def cpd_lstm_smoke(
     )
     artifact = service.smoke(output_root=output_root)
     console.print(json.dumps(artifact, indent=2, default=str))
+
+
+@walkforward_app.command("plan")
+def walkforward_plan(
+    features_path: Path = typer.Option(...),
+    continuous_path: Path = typer.Option(...),
+    snapshot_id: str = typer.Option(...),
+    feature_set_id: str = typer.Option("features_v1"),
+    series_id: str = typer.Option("v1_back_ratio_settle"),
+    roots: str = typer.Option(...),
+    oos_start: date = typer.Option(...),
+    oos_end: date = typer.Option(...),
+    run_id: str = typer.Option(...),
+    output_dir: Path = typer.Option(...),
+    settings_path: Path = typer.Option(Path("config/settings.base.yml")),
+    instruments_path: Path = typer.Option(Path("config/instruments.yml")),
+    train_years: int | None = typer.Option(None),
+    val_years: int | None = typer.Option(None),
+    min_train_days: int | None = typer.Option(None),
+    min_val_days: int | None = typer.Option(None),
+    min_oos_days: int | None = typer.Option(None),
+    repo_root: Path = typer.Option(Path("."), hidden=True),
+) -> None:
+    context = _build_walkforward_context(
+        repo_root=repo_root,
+        features_path=features_path,
+        continuous_path=continuous_path,
+        settings_path=settings_path,
+        instruments_path=instruments_path,
+        snapshot_id=snapshot_id,
+        feature_set_id=feature_set_id,
+        series_id=series_id,
+        roots=roots,
+        run_id=run_id,
+        output_dir=output_dir,
+    )
+    features = read_parquet_dataset(
+        context.features_path / f"feature_set_id={feature_set_id}" / f"snapshot_id={snapshot_id}"
+    )
+    if "year" in features.columns:
+        features = features.drop(columns=["year"])
+    if not features.empty:
+        features["as_of_date"] = pd.to_datetime(features["as_of_date"]).dt.date
+        features = features[
+            (features["feature_set_id"].astype(str) == feature_set_id)
+            & (features["series_id"].astype(str) == series_id)
+            & (features["snapshot_id"].astype(str) == snapshot_id)
+            & features["root"].astype(str).isin(set(context.roots))
+        ]
+    windows = plan_walkforward_windows(
+        features_daily=features,
+        run_id=run_id,
+        roots=context.roots,
+        oos_start=oos_start,
+        oos_end=oos_end,
+        config=context.app_config.walkforward,
+        train_years=train_years,
+        val_years=val_years,
+        min_train_days=min_train_days,
+        min_val_days=min_val_days,
+        min_oos_days=min_oos_days,
+    )
+    context.output_dir.mkdir(parents=True, exist_ok=True)
+    write_parquet_part(windows, context.output_dir / "walkforward_windows.parquet")
+    artifact = {
+        "run_id": run_id,
+        "output_dir": context.output_dir.as_posix(),
+        "fold_count": int(len(windows)),
+        "planned_fold_count": int((windows["status"] == "planned").sum()),
+    }
+    (context.output_dir / "manifest.json").write_bytes(canonical_json_bytes(artifact))
+    console.print(json.dumps(artifact, indent=2, default=str))
+
+
+@walkforward_app.command("run")
+def walkforward_run(
+    features_path: Path = typer.Option(...),
+    continuous_path: Path = typer.Option(...),
+    snapshot_id: str = typer.Option(...),
+    feature_set_id: str = typer.Option("features_v1"),
+    series_id: str = typer.Option("v1_back_ratio_settle"),
+    roots: str = typer.Option(...),
+    oos_start: date = typer.Option(...),
+    oos_end: date = typer.Option(...),
+    run_id: str = typer.Option(...),
+    output_dir: Path = typer.Option(...),
+    settings_path: Path = typer.Option(Path("config/settings.base.yml")),
+    instruments_path: Path = typer.Option(Path("config/instruments.yml")),
+    device: str = typer.Option("auto"),
+    overwrite: bool = typer.Option(False),
+    train_years: int | None = typer.Option(None),
+    val_years: int | None = typer.Option(None),
+    min_train_days: int | None = typer.Option(None),
+    min_val_days: int | None = typer.Option(None),
+    min_oos_days: int | None = typer.Option(None),
+    max_epochs: int | None = typer.Option(None),
+    min_epochs: int | None = typer.Option(None),
+    repo_root: Path = typer.Option(Path("."), hidden=True),
+) -> None:
+    context = _build_walkforward_context(
+        repo_root=repo_root,
+        features_path=features_path,
+        continuous_path=continuous_path,
+        settings_path=settings_path,
+        instruments_path=instruments_path,
+        snapshot_id=snapshot_id,
+        feature_set_id=feature_set_id,
+        series_id=series_id,
+        roots=roots,
+        run_id=run_id,
+        output_dir=output_dir,
+    )
+    artifact = run_walkforward(
+        context=context,
+        oos_start=oos_start,
+        oos_end=oos_end,
+        device=device,
+        overwrite=overwrite,
+        train_years=train_years,
+        val_years=val_years,
+        min_train_days=min_train_days,
+        min_val_days=min_val_days,
+        min_oos_days=min_oos_days,
+        max_epochs=max_epochs,
+        min_epochs=min_epochs,
+    )
+    console.print(json.dumps(artifact, indent=2, default=str))
+
+
+@walkforward_app.command("evaluate-signals")
+def walkforward_evaluate_signals(
+    signals_path: Path = typer.Option(...),
+    features_path: Path = typer.Option(...),
+    continuous_path: Path = typer.Option(...),
+    snapshot_id: str = typer.Option(...),
+    feature_set_id: str = typer.Option("features_v1"),
+    series_id: str = typer.Option("v1_back_ratio_settle"),
+    roots: str = typer.Option(...),
+    run_id: str = typer.Option(...),
+    output_dir: Path = typer.Option(...),
+    settings_path: Path = typer.Option(Path("config/settings.base.yml")),
+    instruments_path: Path = typer.Option(Path("config/instruments.yml")),
+    repo_root: Path = typer.Option(Path("."), hidden=True),
+) -> None:
+    context = _build_walkforward_context(
+        repo_root=repo_root,
+        features_path=features_path,
+        continuous_path=continuous_path,
+        settings_path=settings_path,
+        instruments_path=instruments_path,
+        snapshot_id=snapshot_id,
+        feature_set_id=feature_set_id,
+        series_id=series_id,
+        roots=roots,
+        run_id=run_id,
+        output_dir=output_dir,
+    )
+    signals = read_parquet_dataset(_resolve_repo_path(repo_root, signals_path))
+    if "fold_id" not in signals.columns:
+        signals = signals.assign(
+            fold_id="eval_only",
+            snapshot_id=snapshot_id,
+            feature_set_id=feature_set_id,
+            config_hash="eval_only",
+        )
+    artifact = evaluate_oos_signals(
+        context=context,
+        signals_daily=signals,
+        output_dir=context.output_dir,
+    )
+    console.print(json.dumps(artifact, indent=2, default=str))
+
+
+@walkforward_app.command("qa")
+def walkforward_qa(
+    run_dir: Path = typer.Option(...),
+    repo_root: Path = typer.Option(Path("."), hidden=True),
+) -> None:
+    report = qa_walkforward_run(_resolve_repo_path(repo_root, run_dir))
+    console.print(json.dumps(report, indent=2, default=str))
+    if report["has_errors"]:
+        raise typer.Exit(code=1)
+
+
+@walkforward_app.command("report")
+def walkforward_report(
+    run_dir: Path = typer.Option(...),
+    repo_root: Path = typer.Option(Path("."), hidden=True),
+) -> None:
+    resolved = _resolve_repo_path(repo_root, run_dir)
+    windows = read_parquet_dataset(resolved / "walkforward_windows.parquet")
+    fold_metrics = read_parquet_dataset(resolved / "fold_metrics.parquet")
+    aggregate_metrics = read_parquet_dataset(resolved / "aggregate_metrics.parquet")
+    reversal_metrics = read_parquet_dataset(resolved / "reversal_bucket_metrics.parquet")
+    gates_path = resolved / "gates.json"
+    gates = json.loads(gates_path.read_text(encoding="utf-8")) if gates_path.exists() else {}
+    manifest_path = resolved / "manifest.json"
+    run_id = (
+        json.loads(manifest_path.read_text(encoding="utf-8")).get("run_id")
+        if manifest_path.exists()
+        else resolved.name
+    )
+    json_path, md_path = write_walkforward_report(
+        run_dir=resolved,
+        run_id=str(run_id),
+        windows=windows,
+        fold_metrics=fold_metrics,
+        aggregate_metrics=aggregate_metrics,
+        reversal_bucket_metrics=reversal_metrics,
+        gates=gates,
+        warnings=[],
+    )
+    console.print(json.dumps({"json": json_path.as_posix(), "markdown": md_path.as_posix()}))
 
 
 if __name__ == "__main__":

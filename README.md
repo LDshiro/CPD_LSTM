@@ -121,6 +121,35 @@ python -m cpdshadow.cli models cpd-lstm infer \
   --created-at-utc 2026-04-23T00:00:00Z
 ```
 
+## WP10 Walk-forward Evaluation
+
+WP10 では CPD-LSTM と TSMOM を同じ data snapshot、root universe、risk/cost layer で
+OOS 比較します。出力は model promotion ではなく、WP11 判断用の evidence と gates です。
+
+```bash
+python -m cpdshadow.cli research walkforward plan \
+  --features-path data/features/features_daily \
+  --continuous-path data/curated/continuous_daily \
+  --snapshot-id <snapshot_id> \
+  --feature-set-id features_v1 \
+  --series-id v1_back_ratio_settle \
+  --roots ES,NQ,ZN \
+  --oos-start 2020-01-02 \
+  --oos-end 2024-12-31 \
+  --run-id wf_cpd_lstm_v_tsmom_2020_2024 \
+  --output-dir data/research/walkforward/wf_cpd_lstm_v_tsmom_2020_2024
+
+python -m cpdshadow.cli research walkforward run \
+  --features-path data/features/features_daily \
+  --continuous-path data/curated/continuous_daily \
+  --snapshot-id <snapshot_id> \
+  --roots ES,NQ,ZN \
+  --oos-start 2020-01-02 \
+  --oos-end 2024-12-31 \
+  --run-id wf_cpd_lstm_v_tsmom_2020_2024 \
+  --output-dir data/research/walkforward/wf_cpd_lstm_v_tsmom_2020_2024
+```
+
 ## 注意
 
-この段階では、WP4-WP9 までのデータ基盤、roll、continuous、feature/CPD、fallback signal、CPD-LSTM candidate train/infer は含みますが、**walk-forward、model promotion、IBKR アダプタ、注文執行** はまだ含みません。運用ゴールは引き続き **再現可能で安定した shadow execution** です。
+この段階では、WP4-WP10 までのデータ基盤、roll、continuous、feature/CPD、fallback signal、CPD-LSTM candidate train/infer、walk-forward OOS evaluation は含みますが、**model promotion、IBKR アダプタ、注文執行** はまだ含みません。運用ゴールは引き続き **再現可能で安定した shadow execution** です。
