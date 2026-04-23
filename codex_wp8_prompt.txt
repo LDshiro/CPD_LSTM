@@ -1,0 +1,40 @@
+Implement WP8: TSMOM Fallback / Signal Infrastructure v1.
+
+Please read `docs/codex_wp8_tsmom_signal_infra_instructions.md` first and follow it strictly.
+
+Goal: consume WP7 `features_daily` and produce WP3-compatible `signals_daily` with a deterministic formulaic TSMOM fallback strategy. Also create a generic signal interface that WP9 CPD-LSTM inference can reuse.
+
+Key constraints:
+- No vendor/API/IBKR/network calls.
+- Offline synthetic tests only.
+- Do not implement CPD-LSTM training/inference, walk-forward, broker logic, order intents, or live/paper execution.
+- TSMOM v1 formula is exactly: mean(sign(ret_21), sign(ret_63), sign(ret_252)).
+- Required feature validity: is_complete=true, warmup_status='ok', ret_21/ret_63/ret_252 finite, feature_hash present.
+- No partial-horizon TSMOM in v1.
+- Output schema must match WP3 `signals_daily`.
+- Write `artifacts/strategies/tsmom_v1/formula.json` and stable SHA-256.
+- Add QA JSON/Markdown report.
+- Add `make wp8-signal-smoke-offline`.
+- `make test` must pass.
+
+Suggested files:
+- `src/cpdshadow/signals.py`
+- `src/cpdshadow/signal_io.py`
+- `src/cpdshadow/strategies/base.py`
+- `src/cpdshadow/strategies/tsmom.py`
+- `src/cpdshadow/cli.py`
+- `config/settings.base.yml`
+- `Makefile`
+- `docs/tsmom_signal_v1.md`
+- `docs/decisions/0008-tsmom-signal-infra-v1.md`
+- `tests/unit/test_tsmom_signal_formula.py`
+- `tests/unit/test_signal_schema_validation.py`
+- `tests/unit/test_signal_artifact.py`
+- `tests/integration/test_wp8_signals_cli.py`
+
+Acceptance:
+- `make test` passes.
+- `make wp8-signal-smoke-offline` passes.
+- Build is deterministic across repeated runs.
+- No-lookahead signal test passes.
+- Signal QA artifacts are generated.

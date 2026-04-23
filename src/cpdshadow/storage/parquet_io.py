@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from pathlib import Path
 import os
 import shutil
 import tempfile
+from pathlib import Path
 
 import pandas as pd
 
@@ -59,9 +59,21 @@ def atomic_replace_dir(staging_dir: str | Path, final_dir: str | Path) -> Path:
     backup = final.with_name(f"{final.name}__backup__")
     if backup.exists():
         shutil.rmtree(backup)
-    if final.exists():
-        os.replace(final, backup)
-    os.replace(staging, final)
+    moved_existing_output = False
+    try:
+        if final.exists():
+            os.replace(final, backup)
+            moved_existing_output = True
+        try:
+            os.replace(staging, final)
+        except PermissionError:
+            # Windows can reject directory-to-directory os.replace() even when the
+            # destination does not yet exist. Fall back to move within the same parent.
+            shutil.move(str(staging), str(final))
+    except Exception:
+        if moved_existing_output and backup.exists() and not final.exists():
+            shutil.move(str(backup), str(final))
+        raise
     if backup.exists():
         shutil.rmtree(backup)
     return final

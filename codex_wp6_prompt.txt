@@ -1,0 +1,39 @@
+Implement WP6: Continuous Builder / Backward Ratio-Adjusted Series v1.
+
+Use the current repo state as the baseline. WP4 raw ingest and WP5 roll engine are assumed complete. Follow `docs/codex_wp6_continuous_builder_instructions.md` exactly.
+
+Goal:
+- Build `continuous_daily` from `contracts_daily`, `lead_map`, and `roll_events`.
+- Series: `v1_back_ratio_settle`
+- Builder: `continuous_builder_v1`
+- Method: backward ratio-adjusted settlement series.
+
+Key requirements:
+1. Do not use Databento continuous symbols or vendor continuous prices.
+2. `continuous_daily` is signal-only and never broker-facing.
+3. Adjustment formula:
+   `adj_factor(d) = product(q for roll events where effective_date > d)`
+   `adj_settle_price = raw_settle_price * adj_factor`
+4. On a roll effective date, the new contract is unadjusted; dates before the effective date include the roll ratio.
+5. Test single-roll example:
+   D3 old=102, new=204, ratio=2.0; D4 new=206; return D4 must be `206/204 - 1`.
+6. Future roll events outside the build end date must not affect earlier factors.
+7. Missing/nonpositive roll ratio is fatal in strict mode.
+8. Missing raw prices produce unusable rows with quality flags, not silent fills.
+9. Add QA report with JSON/Markdown output.
+10. Add CLI:
+   - `python -m cpdshadow.cli continuous build ...`
+   - `python -m cpdshadow.cli continuous qa ...`
+11. Add `make wp6-continuous-smoke-offline`.
+12. Add synthetic offline tests only; no Databento/IBKR calls in normal tests.
+13. Keep `make test` green.
+
+Deliverables:
+- `src/cpdshadow/continuous.py`
+- unit/smoke tests
+- CLI integration
+- Makefile target
+- README/spec docs update
+- QA report writer
+
+Do not implement WP7 features/CPD, TSMOM, model training, or broker execution in this WP.

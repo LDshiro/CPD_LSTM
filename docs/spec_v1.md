@@ -82,6 +82,7 @@ v1.0 の主目標は以下。
 - continuous series は vendor synthetic をそのまま正本にせず、raw contracts から自前構築する
 - execution は当日の `lead_contract` に対して行う
 - continuous futures は signal / research 用であり、直接発注対象にしない
+- continuous builder v1 は `v1_back_ratio_settle` / `continuous_builder_v1` の backward ratio-adjusted settlement series を canonical signal series とする
 - raw vendor ingest は immutable file と snapshot registry を前提にし、最初の curated daily layer は contract definitions と per-contract daily summaries に分離する
 
 ### 5.3 continuous / roll
@@ -89,7 +90,7 @@ v1.0 の主目標は以下。
 - lead contract は volume 主体で判定する
 - `next > front` が 3 営業日連続したら volume roll
 - hard roll override を併用する
-- signal series は backward ratio-adjusted continuous を採用する
+- signal series は backward ratio-adjusted continuous を採用し、Databento 等の vendor continuous price を直接使わない
 
 ### 5.4 モデル
 

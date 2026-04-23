@@ -1,0 +1,38 @@
+Implement WP7: Features / CPD Builder v1.
+
+Please read `docs/codex_wp7_features_cpd_instructions.md` first and follow it strictly.
+
+Goal: consume WP6 `continuous_daily` and produce WP3-compatible `cpd_daily` and `features_daily` datasets with deterministic no-lookahead feature calculations, CPD 21/63 outputs, QA reports, CLI commands, tests, and a Makefile smoke target.
+
+Key constraints:
+- No vendor/API/IBKR/network calls.
+- Offline synthetic tests only.
+- Do not implement model training, TSMOM signals, portfolio targets, or broker logic.
+- Use `continuous_daily.adj_settle_price` as the authoritative feature price.
+- Recompute daily returns from adjusted prices and only use existing `daily_return` for validation warnings.
+- Store CPD outputs long-form in `cpd_daily` and model features wide-form in `features_daily`.
+- CPD windows are fixed at 21 and 63.
+- Default CPD method for WP7 is `two_sample_t_v1` with location and severity outputs.
+- `features_daily.cpd21_age` and `cpd63_age` must be normalized to [0,1]; `cpd_daily.cpd_age_days` remains raw integer days.
+- Add `make wp7-features-smoke-offline`.
+- `make test` must pass.
+
+Suggested files:
+- `src/cpdshadow/features.py`
+- `src/cpdshadow/cpd.py`
+- `src/cpdshadow/features_io.py` if useful
+- `src/cpdshadow/cli.py`
+- `config/settings.base.yml`
+- `Makefile`
+- `docs/features_cpd_v1.md`
+- `docs/decisions/0007-features-cpd-builder-v1.md`
+- `tests/unit/test_features_builder.py`
+- `tests/unit/test_cpd.py`
+- `tests/integration/test_wp7_features_cli.py`
+
+Acceptance:
+- `make test` passes.
+- `make wp7-features-smoke-offline` passes.
+- Build is deterministic across repeated runs.
+- No-lookahead test passes.
+- QA JSON and Markdown reports are generated.

@@ -88,3 +88,88 @@ roll:
     - expiration_date
   calendar_source: root_contracts_daily_dates
   no_rollback: true
+
+continuous:
+  series_id: v1_back_ratio_settle
+  builder_version: continuous_builder_v1
+  strict_roll_ratio: true
+  allow_close_fallback: true
+  allowed_settle_statuses:
+    - final
+    - preliminary
+    - close_fallback
+  blocked_settle_statuses:
+    - missing
+  max_abs_daily_return_warning: 0.20
+  max_abs_daily_return_error: 0.50
+
+features:
+  feature_set_id: features_v1
+  builder_version: features_builder_v1
+  series_id: v1_back_ratio_settle
+  price_column: adj_settle_price
+  return_column: daily_return
+  annualization_factor: 252
+  warmup_days: 252
+  epsilon: 1.0e-12
+  horizons:
+    normalized_returns: [1, 21, 63, 126, 252]
+  volatility:
+    estimator: ewm_std
+    span_days: 60
+    min_periods: 20
+    ratio_pairs:
+      - [20, 60]
+      - [60, 252]
+  macd:
+    method: log_price_ema_diff_zscore
+    pairs:
+      - [8, 24]
+      - [16, 48]
+      - [32, 96]
+    zscore_span_days: 252
+    zscore_min_periods: 63
+  cpd:
+    builder_version: cpd_builder_v1
+    method: two_sample_t_v1
+    windows: [21, 63]
+    min_segment_days: 5
+    min_segment_fraction: 0.25
+    input_return: vol_scaled_daily_return
+    score_transform: one_minus_exp_half_t2
+  clipping:
+    normalized_return_abs_max: 20.0
+    macd_abs_max: 20.0
+    vol_ratio_min: 0.05
+    vol_ratio_max: 20.0
+    cpd_score_min: 0.0
+    cpd_score_max: 1.0
+
+signals:
+  output_dataset: data/research/signals_daily
+  qa_artifact_dir: artifacts/wp8
+  default_write_mode: overwrite_partition
+  stable_sort_keys: [as_of_date, root]
+  clip_min: -1.0
+  clip_max: 1.0
+
+strategies:
+  tsmom:
+    strategy_id: tsmom
+    model_id: tsmom_v1
+    signal_version: tsmom_signal_v1
+    formula_artifact_dir: artifacts/strategies/tsmom_v1
+    feature_set_id: features_v1
+    required_features: [ret_21, ret_63, ret_252]
+    horizons_days: [21, 63, 252]
+    weights: [0.3333333333333333, 0.3333333333333333, 0.3333333333333333]
+    sign_zero_policy: zero
+    allow_partial_horizons: false
+    require_feature_complete: true
+    require_warmup_status_ok: true
+    invalid_reasons:
+      missing_required_feature: missing_required_feature
+      nonfinite_required_feature: nonfinite_required_feature
+      feature_incomplete: feature_incomplete
+      warmup_not_ok: warmup_not_ok
+      root_not_requested: root_not_requested
