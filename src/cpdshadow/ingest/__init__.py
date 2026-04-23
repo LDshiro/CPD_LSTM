@@ -4,6 +4,7 @@ from cpdshadow.ingest.features_builder import FeaturesBuilderService
 from cpdshadow.ingest.normalize_databento import normalize_contract_master, normalize_contracts_daily
 from cpdshadow.ingest.quality import QualityIssue, QualityReport, run_quality_checks
 from cpdshadow.ingest.roll_engine import RollEngineService
+from cpdshadow.ingest.signals_builder import SignalsBuilderService
 
 __all__ = [
     "ContinuousBuilderService",
@@ -14,6 +15,7 @@ __all__ = [
     "QualityIssue",
     "QualityReport",
     "RollEngineService",
+    "SignalsBuilderService",
     "normalize_contract_master",
     "normalize_contracts_daily",
     "run_quality_checks",

@@ -3,13 +3,13 @@ from cpdshadow.config import AppConfig
 from cpdshadow.ids import make_run_id
 from cpdshadow.monitoring import MonitoringAlert, MonitoringDecision
 from cpdshadow.portfolio import PortfolioSizingResult, TargetPosition
+from cpdshadow.signals import SignalBuildRequest
 from cpdshadow.storage.registry import RunRegistryRow
-
+from cpdshadow.strategies import TsmomSignalStrategy
 
 
 def test_version_exists() -> None:
     assert __version__ == "0.1.0"
-
 
 
 def test_current_step_types_importable() -> None:
@@ -18,5 +18,7 @@ def test_current_step_types_importable() -> None:
     assert MonitoringDecision is not None
     assert TargetPosition is not None
     assert PortfolioSizingResult is not None
+    assert SignalBuildRequest is not None
+    assert TsmomSignalStrategy is not None
     assert make_run_id is not None
     assert RunRegistryRow is not None

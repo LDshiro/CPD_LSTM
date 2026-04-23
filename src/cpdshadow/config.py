@@ -279,6 +279,69 @@ class FeaturesConfig(BaseModel):
     clipping: FeatureClippingConfig = Field(default_factory=FeatureClippingConfig)
 
 
+class SignalsConfig(BaseModel):
+    output_dataset: str = "data/research/signals_daily"
+    qa_artifact_dir: str = "artifacts/wp8"
+    default_write_mode: Literal["overwrite_partition"] = "overwrite_partition"
+    stable_sort_keys: list[str] = Field(default_factory=lambda: ["as_of_date", "root"])
+    clip_min: float = Field(default=-1.0)
+    clip_max: float = Field(default=1.0)
+
+    @model_validator(mode="after")
+    def validate_bounds(self) -> "SignalsConfig":
+        if not self.stable_sort_keys:
+            raise ValueError("stable_sort_keys must not be empty")
+        if self.clip_max < self.clip_min:
+            raise ValueError("clip_max must be >= clip_min")
+        return self
+
+
+class TsmomInvalidReasonsConfig(BaseModel):
+    missing_required_feature: str = "missing_required_feature"
+    nonfinite_required_feature: str = "nonfinite_required_feature"
+    feature_incomplete: str = "feature_incomplete"
+    warmup_not_ok: str = "warmup_not_ok"
+    root_not_requested: str = "root_not_requested"
+
+
+class TsmomStrategyConfig(BaseModel):
+    strategy_id: str = "tsmom"
+    model_id: str = "tsmom_v1"
+    signal_version: str = "tsmom_signal_v1"
+    formula_artifact_dir: str = "artifacts/strategies/tsmom_v1"
+    feature_set_id: str = "features_v1"
+    required_features: list[str] = Field(default_factory=lambda: ["ret_21", "ret_63", "ret_252"])
+    horizons_days: list[int] = Field(default_factory=lambda: [21, 63, 252])
+    weights: list[float] = Field(default_factory=lambda: [1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0])
+    sign_zero_policy: Literal["zero"] = "zero"
+    allow_partial_horizons: bool = False
+    require_feature_complete: bool = True
+    require_warmup_status_ok: bool = True
+    invalid_reasons: TsmomInvalidReasonsConfig = Field(default_factory=TsmomInvalidReasonsConfig)
+
+    @model_validator(mode="after")
+    def validate_strategy(self) -> "TsmomStrategyConfig":
+        if not self.required_features:
+            raise ValueError("required_features must not be empty")
+        if len(self.required_features) != len(self.horizons_days):
+            raise ValueError("required_features and horizons_days must have the same length")
+        if len(self.required_features) != len(self.weights):
+            raise ValueError("required_features and weights must have the same length")
+        if len(set(self.required_features)) != len(self.required_features):
+            raise ValueError("required_features must be unique")
+        if any(horizon <= 0 for horizon in self.horizons_days):
+            raise ValueError("horizons_days must be positive")
+        if any(weight < 0 for weight in self.weights):
+            raise ValueError("weights must be non-negative")
+        if abs(sum(self.weights) - 1.0) > 1.0e-9:
+            raise ValueError("weights must sum to 1.0")
+        return self
+
+
+class StrategiesConfig(BaseModel):
+    tsmom: TsmomStrategyConfig = Field(default_factory=TsmomStrategyConfig)
+
+
 class AppConfig(BaseModel):
     runtime: RuntimeConfig = Field(default_factory=RuntimeConfig)
     risk: RiskConfig = Field(default_factory=RiskConfig)
@@ -288,6 +351,8 @@ class AppConfig(BaseModel):
     roll: RollConfig = Field(default_factory=RollConfig)
     continuous: ContinuousConfig = Field(default_factory=ContinuousConfig)
     features: FeaturesConfig = Field(default_factory=FeaturesConfig)
+    signals: SignalsConfig = Field(default_factory=SignalsConfig)
+    strategies: StrategiesConfig = Field(default_factory=StrategiesConfig)
 
 
 

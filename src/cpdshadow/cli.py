@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from datetime import date
-from pathlib import Path
 import json
 import os
+from datetime import UTC, date, datetime
+from pathlib import Path
 
+import typer
 from rich.console import Console
 from rich.table import Table
-import typer
 
 from cpdshadow.config import load_data_schema_yaml, load_databento_ingest_yaml, load_yaml
 from cpdshadow.ids import canonical_json_bytes
@@ -15,9 +15,9 @@ from cpdshadow.ingest.continuous_builder import ContinuousBuilderService
 from cpdshadow.ingest.databento_raw import DatabentoIngestService
 from cpdshadow.ingest.features_builder import FeaturesBuilderService
 from cpdshadow.ingest.roll_engine import RollEngineService
+from cpdshadow.ingest.signals_builder import SignalsBuilderService
 from cpdshadow.instruments import load_instrument_master
 from cpdshadow.vendor.databento_client import HistoricalDatabentoClient
-
 
 app = typer.Typer(no_args_is_help=True)
 ingest_app = typer.Typer(no_args_is_help=True)
@@ -25,6 +25,8 @@ databento_app = typer.Typer(no_args_is_help=True)
 roll_engine_app = typer.Typer(no_args_is_help=True)
 continuous_app = typer.Typer(no_args_is_help=True)
 features_app = typer.Typer(no_args_is_help=True)
+signals_app = typer.Typer(no_args_is_help=True)
+tsmom_app = typer.Typer(no_args_is_help=True)
 console = Console()
 
 app.add_typer(ingest_app, name="ingest")
@@ -32,9 +34,13 @@ ingest_app.add_typer(databento_app, name="databento")
 app.add_typer(roll_engine_app, name="roll-engine")
 app.add_typer(continuous_app, name="continuous")
 app.add_typer(features_app, name="features")
+app.add_typer(signals_app, name="signals")
+signals_app.add_typer(tsmom_app, name="tsmom")
 
 
-def _build_service(repo_root: Path, *, client: HistoricalDatabentoClient | None = None) -> DatabentoIngestService:
+def _build_service(
+    repo_root: Path, *, client: HistoricalDatabentoClient | None = None
+) -> DatabentoIngestService:
     ingest_config = load_databento_ingest_yaml(repo_root / "config" / "databento.ingest.yml")
     data_schema = load_data_schema_yaml(repo_root / "config" / "data_schema.yml")
     instrument_master = load_instrument_master(repo_root / "config" / "instruments.yml")
@@ -107,6 +113,25 @@ def _build_features_service(
     )
 
 
+def _build_signals_service(
+    repo_root: Path,
+    *,
+    features_path: Path | None = None,
+    output_dir: Path | None = None,
+    artifact_dir: Path | None = None,
+) -> SignalsBuilderService:
+    app_config = load_yaml(repo_root / "config" / "settings.base.yml")
+    data_schema = load_data_schema_yaml(repo_root / "config" / "data_schema.yml")
+    return SignalsBuilderService(
+        repo_root=repo_root,
+        app_config=app_config,
+        data_schema=data_schema,
+        features_input_root=features_path,
+        signals_output_root=output_dir,
+        artifact_root=artifact_dir,
+    )
+
+
 def _parse_csv(value: str | None) -> list[str] | None:
     if value is None or not value.strip():
         return None
@@ -115,6 +140,16 @@ def _parse_csv(value: str | None) -> list[str] | None:
 
 def _default_output(repo_root: Path, prefix: str) -> Path:
     return repo_root / "artifacts" / "wp4" / f"{prefix}.json"
+
+
+def _parse_utc_datetime(value: str) -> datetime:
+    normalized = value.strip()
+    if normalized.endswith("Z"):
+        normalized = normalized[:-1] + "+00:00"
+    parsed = datetime.fromisoformat(normalized)
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
 
 
 @databento_app.command("plan")
@@ -394,6 +429,69 @@ def features_qa(
         series_id=series_id,
     )
     table = Table(title=f"WP7 Features QA {snapshot_id}")
+    table.add_column("Severity")
+    table.add_column("Code")
+    table.add_column("Message")
+    for issue in report.issues:
+        table.add_row(issue.severity, issue.code, issue.message)
+    console.print(table)
+    console.print(json.dumps(report.to_dict(), indent=2, default=str))
+    if report.has_errors:
+        raise typer.Exit(code=1)
+
+
+@tsmom_app.command("build")
+def signals_tsmom_build(
+    snapshot_id: str = typer.Option(...),
+    feature_set_id: str | None = typer.Option(None),
+    start: date = typer.Option(...),
+    end: date = typer.Option(...),
+    roots: str | None = typer.Option(None),
+    run_id: str = typer.Option(...),
+    created_at_utc: str = typer.Option(...),
+    features_path: Path | None = typer.Option(None),
+    output_dir: Path | None = typer.Option(None),
+    artifact_dir: Path | None = typer.Option(None),
+    overwrite: bool = typer.Option(False),
+    repo_root: Path = typer.Option(Path("."), hidden=True),
+) -> None:
+    service = _build_signals_service(
+        repo_root,
+        features_path=features_path,
+        output_dir=output_dir,
+        artifact_dir=artifact_dir,
+    )
+    artifact = service.build_tsmom(
+        snapshot_id=snapshot_id,
+        feature_set_id=feature_set_id,
+        start_date=start,
+        end_date=end,
+        roots=_parse_csv(roots),
+        run_id=run_id,
+        created_at_utc=_parse_utc_datetime(created_at_utc),
+        overwrite=overwrite,
+    )
+    console.print(json.dumps(artifact, indent=2, default=str))
+
+
+@signals_app.command("qa")
+def signals_qa(
+    run_id: str = typer.Option(...),
+    signals_path: Path | None = typer.Option(None),
+    artifact_dir: Path | None = typer.Option(None),
+    repo_root: Path = typer.Option(Path("."), hidden=True),
+) -> None:
+    service = _build_signals_service(
+        repo_root,
+        output_dir=signals_path,
+        artifact_dir=artifact_dir,
+    )
+    report = service.qa(
+        run_id=run_id,
+        signals_path=signals_path,
+        artifact_dir=artifact_dir,
+    )
+    table = Table(title=f"WP8 Signals QA {run_id}")
     table.add_column("Severity")
     table.add_column("Code")
     table.add_column("Message")

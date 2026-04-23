@@ -22,6 +22,7 @@ help:
 	@echo "  make wp5-roll-smoke-offline - run WP5 offline roll-engine tests"
 	@echo "  make wp6-continuous-smoke-offline - run WP6 offline continuous-builder tests"
 	@echo "  make wp7-features-smoke-offline - run WP7 offline features/CPD tests"
+	@echo "  make wp8-signal-smoke-offline - run WP8 offline signal tests"
 	@echo "  make install-torch-cu128 - optional PyTorch CUDA 12.8 install"
 
 setup:
@@ -31,7 +32,7 @@ check-env:
 	bash scripts/check_env.sh
 
 init-dirs:
-	mkdir -p data/raw data/staging data/curated data/features data/backtests data/shadow data/meta artifacts logs
+	mkdir -p data/raw data/staging data/curated data/features data/research data/backtests data/shadow data/meta artifacts logs
 
 fmt:
 	$(ACTIVATE) && ruff format .
@@ -67,6 +68,9 @@ wp6-continuous-smoke-offline:
 
 wp7-features-smoke-offline:
 	$(ACTIVATE) && pytest -q tests/unit/test_cpd.py tests/unit/test_features_builder.py tests/integration/test_wp7_features_cli.py
+
+wp8-signal-smoke-offline:
+	$(ACTIVATE) && pytest -q tests/unit/test_tsmom_signal_formula.py tests/unit/test_signal_schema_validation.py tests/unit/test_signal_artifact.py tests/integration/test_wp8_signals_cli.py
 
 install-torch-cu128:
 	$(ACTIVATE) && pip install --index-url https://download.pytorch.org/whl/cu128 torch torchvision torchaudio

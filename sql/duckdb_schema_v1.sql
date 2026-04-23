@@ -180,3 +180,17 @@ CREATE TABLE features_daily (
     builder_version VARCHAR NOT NULL,
     snapshot_id VARCHAR NOT NULL
 );
+
+CREATE TABLE signals_daily (
+    run_id VARCHAR NOT NULL,
+    strategy_id VARCHAR NOT NULL,
+    model_id VARCHAR NOT NULL,
+    as_of_date DATE NOT NULL,
+    root VARCHAR NOT NULL,
+    signal_raw DOUBLE,
+    signal_clipped DOUBLE,
+    is_valid BOOLEAN NOT NULL,
+    invalid_reason VARCHAR,
+    feature_hash VARCHAR,
+    created_at_utc TIMESTAMPTZ NOT NULL
+);

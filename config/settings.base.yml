@@ -144,3 +144,32 @@ features:
     vol_ratio_max: 20.0
     cpd_score_min: 0.0
     cpd_score_max: 1.0
+
+signals:
+  output_dataset: data/research/signals_daily
+  qa_artifact_dir: artifacts/wp8
+  default_write_mode: overwrite_partition
+  stable_sort_keys: [as_of_date, root]
+  clip_min: -1.0
+  clip_max: 1.0
+
+strategies:
+  tsmom:
+    strategy_id: tsmom
+    model_id: tsmom_v1
+    signal_version: tsmom_signal_v1
+    formula_artifact_dir: artifacts/strategies/tsmom_v1
+    feature_set_id: features_v1
+    required_features: [ret_21, ret_63, ret_252]
+    horizons_days: [21, 63, 252]
+    weights: [0.3333333333333333, 0.3333333333333333, 0.3333333333333333]
+    sign_zero_policy: zero
+    allow_partial_horizons: false
+    require_feature_complete: true
+    require_warmup_status_ok: true
+    invalid_reasons:
+      missing_required_feature: missing_required_feature
+      nonfinite_required_feature: nonfinite_required_feature
+      feature_incomplete: feature_incomplete
+      warmup_not_ok: warmup_not_ok
+      root_not_requested: root_not_requested

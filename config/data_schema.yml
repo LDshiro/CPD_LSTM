@@ -417,3 +417,34 @@ tables:
       - name: snapshot_id
         dtype: string
         nullable: false
+  signals_daily:
+    columns:
+      - name: run_id
+        dtype: string
+        nullable: false
+      - name: strategy_id
+        dtype: string
+        nullable: false
+      - name: model_id
+        dtype: string
+        nullable: false
+      - name: as_of_date
+        dtype: date
+        nullable: false
+      - name: root
+        dtype: string
+        nullable: false
+      - name: signal_raw
+        dtype: double
+      - name: signal_clipped
+        dtype: double
+      - name: is_valid
+        dtype: bool
+        nullable: false
+      - name: invalid_reason
+        dtype: string
+      - name: feature_hash
+        dtype: string
+      - name: created_at_utc
+        dtype: timestamp_tz
+        nullable: false

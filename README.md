@@ -70,6 +70,26 @@ python -m cpdshadow.cli features qa \
   --feature-set-id features_v1
 ```
 
+## WP8 TSMOM Signals
+
+WP8 では WP7 `features_daily` から fallback 用の `signals_daily` を構築します。
+
+```bash
+python -m cpdshadow.cli signals tsmom build \
+  --features-path data/features/features_daily \
+  --snapshot-id <snapshot_id> \
+  --feature-set-id features_v1 \
+  --start 2024-01-02 \
+  --end 2024-12-31 \
+  --roots ES,NQ,ZN \
+  --run-id infer_tsmom_2024 \
+  --created-at-utc 2026-04-20T00:00:00Z
+
+python -m cpdshadow.cli signals qa \
+  --signals-path data/research/signals_daily \
+  --run-id infer_tsmom_2024
+```
+
 ## 注意
 
-この段階では、WP4-WP7 までのデータ基盤、roll、continuous、feature/CPD 生成は含みますが、**モデル学習、TSMOM シグナル、IBKR アダプタ、注文執行** はまだ含みません。運用ゴールは引き続き **再現可能で安定した shadow execution** です。
+この段階では、WP4-WP8 までのデータ基盤、roll、continuous、feature/CPD、fallback signal 生成は含みますが、**CPD-LSTM 推論、IBKR アダプタ、注文執行** はまだ含みません。運用ゴールは引き続き **再現可能で安定した shadow execution** です。

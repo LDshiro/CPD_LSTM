@@ -1,6 +1,6 @@
 # Data Schema v1.0
 
-- Status: Frozen for WP4-WP7 implementation
+- Status: Frozen for WP4-WP8 implementation
 - Effective date: 2026-04-20
 
 ## Purpose
@@ -9,8 +9,9 @@ WP4 fixes the first physical storage contract for the raw Databento ingest layer
 WP5 extends that contract with deterministic roll outputs derived from WP4 curated data.
 WP6 extends that contract with a deterministic signal-only continuous series derived from WP4/WP5 curated data.
 WP7 extends that contract with deterministic CPD outputs and model-ready features derived from WP6 continuous data.
+WP8 extends that contract with deterministic strategy outputs derived from WP7 feature data.
 The canonical persisted format remains partitioned Parquet datasets. The DuckDB SQL file in `sql/duckdb_schema_v1.sql`
-exists as an executable schema contract, not as a requirement to persist a `.duckdb` file during WP4-WP7.
+exists as an executable schema contract, not as a requirement to persist a `.duckdb` file during WP4-WP8.
 
 ## Tables
 
@@ -54,6 +55,10 @@ One row per `(feature_set_id, as_of_date, root, cpd_window_days)` for long-form 
 
 One row per `(feature_set_id, as_of_date, root)` for the fixed wide model-input vector. WP7 uses `continuous_daily.adj_settle_price` as the authoritative price, recomputes adjusted-price returns internally, and stores normalized CPD ages for model consumption.
 
+### `signals_daily`
+
+One row per `(run_id, strategy_id, as_of_date, root)` for deterministic strategy outputs. WP8 v1 introduces `tsmom_v1` as the first formulaic fallback strategy and establishes the reusable signal contract that future CPD-LSTM inference will share.
+
 ## Physical notes
 
 - Raw vendor parquet is immutable under `data/raw/databento/...`.
@@ -62,4 +67,5 @@ One row per `(feature_set_id, as_of_date, root)` for the fixed wide model-input 
 - WP5 roll outputs are written snapshot-by-snapshot under `data/curated/lead_map` and `data/curated/roll_events`, partitioned by year within each snapshot.
 - WP6 continuous outputs are written under `data/curated/continuous_daily/series_id=<series_id>/snapshot_id=<snapshot_id>`, partitioned by year within each snapshot.
 - WP7 feature outputs are written under `data/features/cpd_daily/feature_set_id=<feature_set_id>/snapshot_id=<snapshot_id>` and `data/features/features_daily/feature_set_id=<feature_set_id>/snapshot_id=<snapshot_id>`, partitioned by year within each snapshot.
+- WP8 signal outputs are written under `data/research/signals_daily/strategy_id=<strategy_id>/model_id=<model_id>/run_id=<run_id>`, partitioned by year within each signal run.
 - `quality_flags` is stored as a sorted list of strings.
