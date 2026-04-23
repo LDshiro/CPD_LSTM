@@ -31,6 +31,9 @@ dev = [
   "ruff>=0.6",
   "types-PyYAML>=6.0",
 ]
+ml = [
+  "torch>=2.3",
+]
 
 [tool.setuptools]
 package-dir = {"" = "src"}
@@ -63,3 +66,7 @@ mypy_path = "src"
 [[tool.mypy.overrides]]
 module = ["tests.*"]
 disallow_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["torch", "torch.*"]
+ignore_missing_imports = true

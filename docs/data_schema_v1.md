@@ -1,6 +1,6 @@
 # Data Schema v1.0
 
-- Status: Frozen for WP4-WP8 implementation
+- Status: Frozen for WP4-WP9 implementation
 - Effective date: 2026-04-20
 
 ## Purpose
@@ -10,8 +10,9 @@ WP5 extends that contract with deterministic roll outputs derived from WP4 curat
 WP6 extends that contract with a deterministic signal-only continuous series derived from WP4/WP5 curated data.
 WP7 extends that contract with deterministic CPD outputs and model-ready features derived from WP6 continuous data.
 WP8 extends that contract with deterministic strategy outputs derived from WP7 feature data.
+WP9 extends that contract with candidate CPD-LSTM training artifacts and CPD-LSTM inference signals.
 The canonical persisted format remains partitioned Parquet datasets. The DuckDB SQL file in `sql/duckdb_schema_v1.sql`
-exists as an executable schema contract, not as a requirement to persist a `.duckdb` file during WP4-WP8.
+exists as an executable schema contract, not as a requirement to persist a `.duckdb` file during WP4-WP9.
 
 ## Tables
 
@@ -59,6 +60,14 @@ One row per `(feature_set_id, as_of_date, root)` for the fixed wide model-input 
 
 One row per `(run_id, strategy_id, as_of_date, root)` for deterministic strategy outputs. WP8 v1 introduces `tsmom_v1` as the first formulaic fallback strategy and establishes the reusable signal contract that future CPD-LSTM inference will share.
 
+### `training_runs`
+
+One row per CPD-LSTM train invocation. WP9 records candidate training windows, seed, config and hyperparameter hashes, data snapshot linkage, status, and the best validation metric.
+
+### `model_registry`
+
+One row per CPD-LSTM artifact. WP9 registers artifacts as `candidate` only; model promotion to `shadow` is reserved for later work.
+
 ## Physical notes
 
 - Raw vendor parquet is immutable under `data/raw/databento/...`.
@@ -68,4 +77,7 @@ One row per `(run_id, strategy_id, as_of_date, root)` for deterministic strategy
 - WP6 continuous outputs are written under `data/curated/continuous_daily/series_id=<series_id>/snapshot_id=<snapshot_id>`, partitioned by year within each snapshot.
 - WP7 feature outputs are written under `data/features/cpd_daily/feature_set_id=<feature_set_id>/snapshot_id=<snapshot_id>` and `data/features/features_daily/feature_set_id=<feature_set_id>/snapshot_id=<snapshot_id>`, partitioned by year within each snapshot.
 - WP8 signal outputs are written under `data/research/signals_daily/strategy_id=<strategy_id>/model_id=<model_id>/run_id=<run_id>`, partitioned by year within each signal run.
+- WP9 training rows are written under `data/research/training_runs/strategy_id=cpd_lstm/year=<YYYY>` and model registry rows under `data/research/model_registry/strategy_id=cpd_lstm/model_id=<model_id>`.
+- WP9 model artifacts are written under `artifacts/models/cpd_lstm/<model_id>`.
+- WP9 CPD-LSTM inference reuses the WP8 signal output layout with `strategy_id=cpd_lstm`.
 - `quality_flags` is stored as a sorted list of strings.

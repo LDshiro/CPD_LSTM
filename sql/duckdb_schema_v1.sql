@@ -194,3 +194,34 @@ CREATE TABLE signals_daily (
     feature_hash VARCHAR,
     created_at_utc TIMESTAMPTZ NOT NULL
 );
+
+CREATE TABLE training_runs (
+    training_run_id VARCHAR NOT NULL,
+    strategy_id VARCHAR NOT NULL,
+    feature_set_id VARCHAR NOT NULL,
+    train_start_date DATE NOT NULL,
+    train_end_date DATE NOT NULL,
+    validation_start_date DATE NOT NULL,
+    validation_end_date DATE NOT NULL,
+    seed BIGINT NOT NULL,
+    hyperparams_hash VARCHAR NOT NULL,
+    config_hash VARCHAR NOT NULL,
+    data_snapshot_id VARCHAR NOT NULL,
+    status VARCHAR NOT NULL,
+    best_validation_metric DOUBLE,
+    created_at_utc TIMESTAMPTZ NOT NULL,
+    completed_at_utc TIMESTAMPTZ
+);
+
+CREATE TABLE model_registry (
+    model_id VARCHAR NOT NULL,
+    strategy_id VARCHAR NOT NULL,
+    training_run_id VARCHAR NOT NULL,
+    artifact_path VARCHAR NOT NULL,
+    artifact_sha256 VARCHAR NOT NULL,
+    feature_set_id VARCHAR NOT NULL,
+    config_hash VARCHAR NOT NULL,
+    model_status VARCHAR NOT NULL,
+    registered_at_utc TIMESTAMPTZ NOT NULL,
+    notes VARCHAR
+);

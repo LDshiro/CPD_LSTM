@@ -173,3 +173,71 @@ strategies:
       feature_incomplete: feature_incomplete
       warmup_not_ok: warmup_not_ok
       root_not_requested: root_not_requested
+
+models:
+  cpd_lstm:
+    model_family: cpd_lstm_v1
+    strategy_id: cpd_lstm
+    feature_set_id: features_v1
+    series_id: v1_back_ratio_settle
+    sequence_length: 63
+    annualization_factor: 252
+    epsilon: 1.0e-12
+    feature_order:
+      - ret_1
+      - ret_21
+      - ret_63
+      - ret_126
+      - ret_252
+      - macd_8_24
+      - macd_16_48
+      - macd_32_96
+      - cpd21_score
+      - cpd21_age
+      - cpd63_score
+      - cpd63_age
+      - vol_20_60
+      - vol_60_252
+    labels:
+      horizon_root_trading_days: 1
+      return_source: continuous_daily.daily_return
+      normalize_by: annualized_vol_60
+      normalized_return_clip_abs: 10.0
+      min_annualized_vol: 0.01
+    standardization:
+      enabled: true
+      fit_scope: train_only
+      method: zscore
+      min_std: 1.0e-6
+      clip_abs_after_standardization: 10.0
+    architecture:
+      input_size: 14
+      hidden_size: 64
+      num_layers: 1
+      dropout_after_lstm: 0.20
+      head_hidden_size: 32
+      output_activation: tanh
+      output_clip_abs: 1.0
+    training:
+      optimizer: adamw
+      learning_rate: 0.0003
+      weight_decay: 0.0001
+      max_epochs: 50
+      min_epochs: 5
+      early_stopping_patience: 8
+      gradient_clip_norm: 1.0
+      seed: 42
+      deterministic_mode: warn
+      device: auto
+      dtype: float32
+      batch_mode: full_panel
+      validation_metric: sharpe_ex_cost
+      cost_bps_default: 2.0
+      turnover_cost_multiplier: 1.0
+      signal_l2_penalty: 1.0e-4
+      turnover_l1_penalty: 0.0
+    smoke:
+      max_epochs: 3
+      min_epochs: 1
+      roots: [ES, NQ]
+      n_days: 180

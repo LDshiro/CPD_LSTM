@@ -448,3 +448,79 @@ tables:
       - name: created_at_utc
         dtype: timestamp_tz
         nullable: false
+  training_runs:
+    columns:
+      - name: training_run_id
+        dtype: string
+        nullable: false
+      - name: strategy_id
+        dtype: string
+        nullable: false
+      - name: feature_set_id
+        dtype: string
+        nullable: false
+      - name: train_start_date
+        dtype: date
+        nullable: false
+      - name: train_end_date
+        dtype: date
+        nullable: false
+      - name: validation_start_date
+        dtype: date
+        nullable: false
+      - name: validation_end_date
+        dtype: date
+        nullable: false
+      - name: seed
+        dtype: int64
+        nullable: false
+      - name: hyperparams_hash
+        dtype: string
+        nullable: false
+      - name: config_hash
+        dtype: string
+        nullable: false
+      - name: data_snapshot_id
+        dtype: string
+        nullable: false
+      - name: status
+        dtype: string
+        nullable: false
+      - name: best_validation_metric
+        dtype: double
+      - name: created_at_utc
+        dtype: timestamp_tz
+        nullable: false
+      - name: completed_at_utc
+        dtype: timestamp_tz
+  model_registry:
+    columns:
+      - name: model_id
+        dtype: string
+        nullable: false
+      - name: strategy_id
+        dtype: string
+        nullable: false
+      - name: training_run_id
+        dtype: string
+        nullable: false
+      - name: artifact_path
+        dtype: string
+        nullable: false
+      - name: artifact_sha256
+        dtype: string
+        nullable: false
+      - name: feature_set_id
+        dtype: string
+        nullable: false
+      - name: config_hash
+        dtype: string
+        nullable: false
+      - name: model_status
+        dtype: string
+        nullable: false
+      - name: registered_at_utc
+        dtype: timestamp_tz
+        nullable: false
+      - name: notes
+        dtype: string

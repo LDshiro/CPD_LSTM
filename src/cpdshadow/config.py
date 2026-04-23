@@ -8,6 +8,23 @@ import yaml
 
 from cpdshadow.instruments import AssetClass
 
+CPD_LSTM_FEATURE_ORDER = [
+    "ret_1",
+    "ret_21",
+    "ret_63",
+    "ret_126",
+    "ret_252",
+    "macd_8_24",
+    "macd_16_48",
+    "macd_32_96",
+    "cpd21_score",
+    "cpd21_age",
+    "cpd63_score",
+    "cpd63_age",
+    "vol_20_60",
+    "vol_60_252",
+]
+
 
 class RuntimeConfig(BaseModel):
     timezone: str = Field(default="Asia/Tokyo")
@@ -342,6 +359,101 @@ class StrategiesConfig(BaseModel):
     tsmom: TsmomStrategyConfig = Field(default_factory=TsmomStrategyConfig)
 
 
+class CpdLstmLabelsConfig(BaseModel):
+    horizon_root_trading_days: int = Field(default=1, ge=1)
+    return_source: Literal["continuous_daily.daily_return"] = "continuous_daily.daily_return"
+    normalize_by: Literal["annualized_vol_60"] = "annualized_vol_60"
+    normalized_return_clip_abs: float = Field(default=10.0, gt=0.0)
+    min_annualized_vol: float = Field(default=0.01, gt=0.0)
+
+
+class CpdLstmStandardizationConfig(BaseModel):
+    enabled: bool = True
+    fit_scope: Literal["train_only"] = "train_only"
+    method: Literal["zscore"] = "zscore"
+    min_std: float = Field(default=1.0e-6, gt=0.0)
+    clip_abs_after_standardization: float = Field(default=10.0, gt=0.0)
+
+
+class CpdLstmArchitectureConfig(BaseModel):
+    input_size: int = Field(default=14, ge=1)
+    hidden_size: int = Field(default=64, ge=1)
+    num_layers: int = Field(default=1, ge=1)
+    dropout_after_lstm: float = Field(default=0.20, ge=0.0, lt=1.0)
+    head_hidden_size: int = Field(default=32, ge=1)
+    output_activation: Literal["tanh"] = "tanh"
+    output_clip_abs: float = Field(default=1.0, gt=0.0)
+
+
+class CpdLstmTrainingConfig(BaseModel):
+    optimizer: Literal["adamw"] = "adamw"
+    learning_rate: float = Field(default=0.0003, gt=0.0)
+    weight_decay: float = Field(default=0.0001, ge=0.0)
+    max_epochs: int = Field(default=50, ge=1)
+    min_epochs: int = Field(default=5, ge=1)
+    early_stopping_patience: int = Field(default=8, ge=0)
+    gradient_clip_norm: float = Field(default=1.0, gt=0.0)
+    seed: int = 42
+    deterministic_mode: Literal["strict", "warn", "off"] = "warn"
+    device: str = "auto"
+    dtype: Literal["float32"] = "float32"
+    batch_mode: Literal["full_panel"] = "full_panel"
+    validation_metric: Literal["sharpe_ex_cost"] = "sharpe_ex_cost"
+    cost_bps_default: float = Field(default=2.0, ge=0.0)
+    turnover_cost_multiplier: float = Field(default=1.0, ge=0.0)
+    signal_l2_penalty: float = Field(default=1.0e-4, ge=0.0)
+    turnover_l1_penalty: float = Field(default=0.0, ge=0.0)
+
+    @model_validator(mode="after")
+    def validate_epochs(self) -> "CpdLstmTrainingConfig":
+        if self.max_epochs < self.min_epochs:
+            raise ValueError("max_epochs must be >= min_epochs")
+        return self
+
+
+class CpdLstmSmokeConfig(BaseModel):
+    max_epochs: int = Field(default=3, ge=1)
+    min_epochs: int = Field(default=1, ge=1)
+    roots: list[str] = Field(default_factory=lambda: ["ES", "NQ"])
+    n_days: int = Field(default=180, ge=80)
+
+    @model_validator(mode="after")
+    def validate_smoke(self) -> "CpdLstmSmokeConfig":
+        if self.max_epochs < self.min_epochs:
+            raise ValueError("smoke.max_epochs must be >= smoke.min_epochs")
+        if not self.roots:
+            raise ValueError("smoke.roots must not be empty")
+        return self
+
+
+class CpdLstmModelConfig(BaseModel):
+    model_family: Literal["cpd_lstm_v1"] = "cpd_lstm_v1"
+    strategy_id: Literal["cpd_lstm"] = "cpd_lstm"
+    feature_set_id: str = "features_v1"
+    series_id: str = "v1_back_ratio_settle"
+    sequence_length: int = Field(default=63, ge=2)
+    annualization_factor: int = Field(default=252, ge=1)
+    epsilon: float = Field(default=1.0e-12, gt=0.0)
+    feature_order: list[str] = Field(default_factory=lambda: list(CPD_LSTM_FEATURE_ORDER))
+    labels: CpdLstmLabelsConfig = Field(default_factory=CpdLstmLabelsConfig)
+    standardization: CpdLstmStandardizationConfig = Field(default_factory=CpdLstmStandardizationConfig)
+    architecture: CpdLstmArchitectureConfig = Field(default_factory=CpdLstmArchitectureConfig)
+    training: CpdLstmTrainingConfig = Field(default_factory=CpdLstmTrainingConfig)
+    smoke: CpdLstmSmokeConfig = Field(default_factory=CpdLstmSmokeConfig)
+
+    @model_validator(mode="after")
+    def validate_model(self) -> "CpdLstmModelConfig":
+        if self.feature_order != CPD_LSTM_FEATURE_ORDER:
+            raise ValueError("models.cpd_lstm.feature_order must match features_v1 order")
+        if self.architecture.input_size != len(self.feature_order):
+            raise ValueError("architecture.input_size must match feature_order length")
+        return self
+
+
+class ModelsConfig(BaseModel):
+    cpd_lstm: CpdLstmModelConfig = Field(default_factory=CpdLstmModelConfig)
+
+
 class AppConfig(BaseModel):
     runtime: RuntimeConfig = Field(default_factory=RuntimeConfig)
     risk: RiskConfig = Field(default_factory=RiskConfig)
@@ -353,6 +465,7 @@ class AppConfig(BaseModel):
     features: FeaturesConfig = Field(default_factory=FeaturesConfig)
     signals: SignalsConfig = Field(default_factory=SignalsConfig)
     strategies: StrategiesConfig = Field(default_factory=StrategiesConfig)
+    models: ModelsConfig = Field(default_factory=ModelsConfig)
 
 
 

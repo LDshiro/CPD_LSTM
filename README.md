@@ -90,6 +90,37 @@ python -m cpdshadow.cli signals qa \
   --run-id infer_tsmom_2024
 ```
 
+## WP9 CPD-LSTM Model
+
+WP9 では WP7 `features_daily` と WP6 `continuous_daily` の next-day label から
+最小 CPD-LSTM candidate を学習し、WP8 と同じ `signals_daily` contract へ推論結果を書きます。
+PyTorch は optional ML dependency です。CPU smoke には `python -m pip install -e .[dev,ml]`
+を使い、CUDA 12.8 環境では `make install-torch-cu128` を使います。
+
+```bash
+python -m cpdshadow.cli models cpd-lstm train \
+  --features-path data/features/features_daily \
+  --continuous-path data/curated/continuous_daily \
+  --snapshot-id <snapshot_id> \
+  --train-start 2014-01-02 \
+  --train-end 2021-12-31 \
+  --val-start 2022-01-03 \
+  --val-end 2023-12-29 \
+  --model-id cpd_lstm_v1_candidate \
+  --training-run-id train_cpd_lstm_v1_candidate \
+  --output-dir artifacts/models/cpd_lstm/cpd_lstm_v1_candidate
+
+python -m cpdshadow.cli models cpd-lstm infer \
+  --features-path data/features/features_daily \
+  --snapshot-id <snapshot_id> \
+  --model-dir artifacts/models/cpd_lstm/cpd_lstm_v1_candidate \
+  --model-id cpd_lstm_v1_candidate \
+  --start 2024-01-02 \
+  --end 2024-12-31 \
+  --run-id infer_cpd_lstm_2024 \
+  --created-at-utc 2026-04-23T00:00:00Z
+```
+
 ## 注意
 
-この段階では、WP4-WP8 までのデータ基盤、roll、continuous、feature/CPD、fallback signal 生成は含みますが、**CPD-LSTM 推論、IBKR アダプタ、注文執行** はまだ含みません。運用ゴールは引き続き **再現可能で安定した shadow execution** です。
+この段階では、WP4-WP9 までのデータ基盤、roll、continuous、feature/CPD、fallback signal、CPD-LSTM candidate train/infer は含みますが、**walk-forward、model promotion、IBKR アダプタ、注文執行** はまだ含みません。運用ゴールは引き続き **再現可能で安定した shadow execution** です。

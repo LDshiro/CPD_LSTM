@@ -17,6 +17,8 @@ def test_load_base_config() -> None:
     assert cfg.features.cpd.method == "two_sample_t_v1"
     assert cfg.signals.output_dataset == "data/research/signals_daily"
     assert cfg.strategies.tsmom.model_id == "tsmom_v1"
+    assert cfg.models.cpd_lstm.model_family == "cpd_lstm_v1"
+    assert cfg.models.cpd_lstm.sequence_length == 63
 
 
 def test_load_wp4_ingest_config_and_schema() -> None:
@@ -31,3 +33,5 @@ def test_load_wp4_ingest_config_and_schema() -> None:
     assert "cpd_daily" in schema_cfg.tables
     assert "features_daily" in schema_cfg.tables
     assert "signals_daily" in schema_cfg.tables
+    assert "training_runs" in schema_cfg.tables
+    assert "model_registry" in schema_cfg.tables
