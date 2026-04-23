@@ -29,6 +29,9 @@ def test_load_base_config() -> None:
     assert cfg.walkforward.train_years == 10
     assert cfg.walkforward.val_years == 2
     assert cfg.walkforward.reversal_bucket.horizons == [1, 5, 20]
+    assert cfg.broker.ibkr.broker_name == "ibkr_tws_api"
+    assert cfg.broker.ibkr.supported_modes == ["shadow_only", "paper_submit"]
+    assert cfg.broker.ibkr.paper_guard_env == "CPDSHADOW_ENABLE_PAPER_SUBMIT"
     release_gates = load_model_release_gates(Path("config/model_release_gates.yml"))
     assert release_gates.version == "model_release_gates_v1"
     assert release_gates.hard_gates.min_full_oos_net_sharpe == 0.90
@@ -54,6 +57,11 @@ def test_load_wp4_ingest_config_and_schema() -> None:
     assert "model_registry" in schema_cfg.tables
     assert "targets_daily" in schema_cfg.tables
     assert "broker_positions_snapshot" in schema_cfg.tables
+    assert "broker_open_orders_snapshot" in schema_cfg.tables
     assert "monitoring_daily" in schema_cfg.tables
     assert "order_intents" in schema_cfg.tables
     assert "journal_events" in schema_cfg.tables
+    order_intent_columns = schema_cfg.tables["order_intents"].column_names
+    assert "broker_name" in order_intent_columns
+    assert "broker_mode" in order_intent_columns
+    assert "broker_request_id" in order_intent_columns

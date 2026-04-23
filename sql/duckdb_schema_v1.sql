@@ -249,10 +249,37 @@ CREATE TABLE broker_positions_snapshot (
     execution_mode VARCHAR NOT NULL,
     account_id VARCHAR,
     broker_contract_id VARCHAR,
-    raw_symbol VARCHAR NOT NULL,
-    root VARCHAR NOT NULL,
+    broker_contract_key VARCHAR,
+    raw_symbol VARCHAR,
+    root VARCHAR,
     position_contracts BIGINT NOT NULL,
-    snapshot_time_utc TIMESTAMPTZ NOT NULL
+    avg_cost DOUBLE,
+    snapshot_time_utc TIMESTAMPTZ NOT NULL,
+    source VARCHAR NOT NULL
+);
+
+CREATE TABLE broker_open_orders_snapshot (
+    open_orders_snapshot_id VARCHAR NOT NULL,
+    run_id VARCHAR NOT NULL,
+    execution_mode VARCHAR NOT NULL,
+    account_id VARCHAR NOT NULL,
+    captured_at_utc TIMESTAMPTZ NOT NULL,
+    client_id BIGINT,
+    ib_order_id BIGINT,
+    perm_id BIGINT,
+    broker_contract_id VARCHAR,
+    broker_contract_key VARCHAR,
+    raw_symbol VARCHAR,
+    root VARCHAR,
+    action VARCHAR NOT NULL,
+    total_quantity BIGINT NOT NULL,
+    filled_quantity BIGINT NOT NULL,
+    remaining_quantity BIGINT NOT NULL,
+    order_type VARCHAR NOT NULL,
+    tif VARCHAR NOT NULL,
+    limit_price DOUBLE,
+    status VARCHAR NOT NULL,
+    source VARCHAR NOT NULL
 );
 
 CREATE TABLE monitoring_daily (
@@ -276,6 +303,13 @@ CREATE TABLE order_intents (
     root VARCHAR NOT NULL,
     raw_symbol VARCHAR NOT NULL,
     broker_contract_id VARCHAR,
+    broker_name VARCHAR,
+    broker_mode VARCHAR,
+    broker_contract_key VARCHAR,
+    broker_request_id VARCHAR,
+    ib_order_id BIGINT,
+    perm_id BIGINT,
+    account_id VARCHAR,
     side VARCHAR NOT NULL,
     quantity BIGINT NOT NULL,
     order_type VARCHAR NOT NULL,
@@ -286,8 +320,11 @@ CREATE TABLE order_intents (
     position_snapshot_id VARCHAR NOT NULL,
     sequence_no BIGINT NOT NULL,
     rejection_reason VARCHAR,
+    broker_error_code VARCHAR,
+    broker_error_message VARCHAR,
     created_at_utc TIMESTAMPTZ NOT NULL,
-    submitted_at_utc TIMESTAMPTZ
+    submitted_at_utc TIMESTAMPTZ,
+    updated_at_utc TIMESTAMPTZ
 );
 
 CREATE TABLE journal_events (

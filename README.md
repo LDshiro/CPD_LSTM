@@ -193,6 +193,33 @@ python -m cpdshadow.cli broker-boundary qa \
   --output-dir data/shadow/execution_boundary/run_id=shadow_run_001
 ```
 
+## WP13 IBKR Adapter / Paper-Shadow Integration
+
+WP13 では WP12 の broker-neutral `order_intents` を IBKR TWS API / IB Gateway 向けに変換します。
+`shadow_only` は broker state sync と translation preview のみで、`placeOrder` は一度も呼びません。
+`paper_submit` は `CPDSHADOW_ENABLE_PAPER_SUBMIT=1` と paper account allowlist が揃ったときだけ許可します。
+
+```bash
+python -m cpdshadow.cli broker-ibkr sync-state \
+  --run-id shadow_ibkr_demo \
+  --as-of 2026-04-23 \
+  --mode shadow_only \
+  --account-id $IBKR_ACCOUNT \
+  --contract-master-path data/curated/contract_master
+
+python -m cpdshadow.cli broker-ibkr submit-intents \
+  --order-intents-path data/shadow/execution_boundary/run_id=shadow_run_001/order_intents.parquet \
+  --contract-master-path data/curated/contract_master \
+  --contracts-daily-path data/curated/contracts_daily \
+  --mode shadow_only \
+  --run-id shadow_run_001 \
+  --as-of 2026-04-23 \
+  --account-id $IBKR_ACCOUNT
+
+python -m cpdshadow.cli broker-ibkr qa \
+  --workspace data/shadow/broker/ibkr/run_id=shadow_run_001
+```
+
 ## 注意
 
-この段階では、WP4-WP12 までのデータ基盤、roll、continuous、feature/CPD、fallback signal、CPD-LSTM candidate train/infer、walk-forward OOS evaluation、Shadow-only model RC packaging、broker-neutral dry-run order intent generation は含みますが、**IBKR アダプタ、注文送信、fills、live/paper approval** はまだ含みません。運用ゴールは引き続き **再現可能で安定した shadow execution** です。
+この段階では、WP4-WP13 までのデータ基盤、roll、continuous、feature/CPD、fallback signal、CPD-LSTM candidate train/infer、walk-forward OOS evaluation、Shadow-only model RC packaging、broker-neutral dry-run order intent generation、IBKR paper-shadow adapter は含みますが、**live submission、broker fills を前提にした production orchestration、paper/live approval** はまだ含みません。運用ゴールは引き続き **再現可能で安定した shadow execution** です。

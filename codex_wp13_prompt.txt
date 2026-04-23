@@ -1,0 +1,31 @@
+Implement WP13: IBKR Adapter / Paper-Shadow Integration v1.
+
+Open and follow:
+- docs/codex_wp13_ibkr_paper_instructions.md
+
+Goals:
+- add TWS API / IB Gateway adapter boundary under src/cpdshadow/broker/ibkr/
+- support read-only broker sync for positions, open orders, account summary subset
+- support execution modes: shadow_only and paper_submit
+- shadow_only must never call placeOrder
+- paper_submit must require explicit env guard and must still be paper-only
+- translate WP12 order_intents into IBKR futures orders
+- add deterministic paper limit-price policy from local reference prices
+- add reconciliation from broker callbacks into normalized project statuses
+- add broker_open_orders_snapshot persistence
+- add docs, runbook, config, tests, and make targets
+
+Hard constraints:
+- no live submit mode
+- no Client Portal Web API trading adapter
+- no market-data subscription dependency
+- no combo / algo / bracket orders
+- tests must be offline by default
+- mock integration tests required
+
+After implementation:
+1. run make test
+2. run make wp13-broker-smoke-offline
+3. run make wp13-broker-smoke-mock
+
+If something in the repo differs from the instruction doc, adapt carefully but preserve the data contracts and safety rails.

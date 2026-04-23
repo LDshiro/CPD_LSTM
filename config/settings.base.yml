@@ -75,6 +75,36 @@ monitoring:
     max_consecutive_cpd_underperformance_windows: 2
     min_reversal_edge_usd: 0.0
 
+broker:
+  ibkr:
+    broker_name: ibkr_tws_api
+    host_env: IBKR_HOST
+    port_env: IBKR_PORT
+    client_id_env: IBKR_CLIENT_ID
+    account_env: IBKR_ACCOUNT
+    paper_guard_env: CPDSHADOW_ENABLE_PAPER_SUBMIT
+    live_tests_env: CPDSHADOW_RUN_IBKR_TESTS
+    allowed_accounts:
+      - DU0000000
+    paper_account_prefixes:
+      - DU
+    connect_timeout_seconds: 10
+    callback_timeout_seconds: 10
+    default_tif: DAY
+    outside_rth: false
+    reference_max_age_days: 7
+    paper_buffer_bps: 5.0
+    supported_modes:
+      - shadow_only
+      - paper_submit
+    account_summary_tags:
+      - NetLiquidation
+      - ExcessLiquidity
+      - InitMarginReq
+      - MaintMarginReq
+      - BuyingPower
+      - AvailableFunds
+
 roll:
   policy_version: volume3_hardroll_v1
   builder_version: roll_engine_v1

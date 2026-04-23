@@ -27,6 +27,10 @@ help:
 	@echo "  make wp10-walkforward-smoke-offline - run WP10 offline walk-forward tests"
 	@echo "  make wp11-model-rc-smoke-offline - run WP11 offline model RC tests"
 	@echo "  make wp12-broker-boundary-smoke-offline - run WP12 offline broker-boundary tests"
+	@echo "  make wp13-broker-smoke-offline - run WP13 offline IBKR adapter tests"
+	@echo "  make wp13-broker-smoke-mock - run WP13 mock callback integration tests"
+	@echo "  make wp13-broker-sync-shadow - run WP13 shadow-only broker sync command"
+	@echo "  make wp13-broker-submit-paper - run WP13 paper-submit command (guarded)"
 	@echo "  make install-torch-cu128 - optional PyTorch CUDA 12.8 install"
 
 setup:
@@ -87,6 +91,18 @@ wp11-model-rc-smoke-offline:
 
 wp12-broker-boundary-smoke-offline:
 	$(ACTIVATE) && pytest -q tests/unit/test_order_intents.py tests/unit/test_dry_run_adapter.py tests/unit/test_execution_boundary_rules.py tests/smoke/test_wp12_broker_boundary_smoke.py
+
+wp13-broker-smoke-offline:
+	$(ACTIVATE) && pytest -q tests/unit/test_ibkr_contracts.py tests/unit/test_ibkr_translation.py tests/unit/test_ibkr_reconcile.py tests/smoke/test_wp13_broker_smoke.py
+
+wp13-broker-smoke-mock:
+	$(ACTIVATE) && pytest -q tests/integration/test_wp13_broker_mock.py
+
+wp13-broker-sync-shadow:
+	$(ACTIVATE) && python -m cpdshadow.cli broker-ibkr sync-state --run-id shadow_ibkr_demo --as-of 2026-04-23 --mode shadow_only --account-id $$IBKR_ACCOUNT --contract-master-path data/curated/contract_master
+
+wp13-broker-submit-paper:
+	$(ACTIVATE) && python -m cpdshadow.cli broker-ibkr submit-intents --order-intents-path data/shadow/execution_boundary/run_id=shadow_run_001/order_intents.parquet --contract-master-path data/curated/contract_master --contracts-daily-path data/curated/contracts_daily --mode paper_submit --run-id shadow_run_001 --as-of 2026-04-23 --account-id $$IBKR_ACCOUNT
 
 install-torch-cu128:
 	$(ACTIVATE) && bash scripts/install_torch_cuda128.sh
