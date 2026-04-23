@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from cpdshadow.config import load_data_schema_yaml, load_databento_ingest_yaml, load_yaml
+from cpdshadow.model_release import load_model_release_gates
 
 
 def test_load_base_config() -> None:
@@ -23,6 +24,9 @@ def test_load_base_config() -> None:
     assert cfg.walkforward.train_years == 10
     assert cfg.walkforward.val_years == 2
     assert cfg.walkforward.reversal_bucket.horizons == [1, 5, 20]
+    release_gates = load_model_release_gates(Path("config/model_release_gates.yml"))
+    assert release_gates.version == "model_release_gates_v1"
+    assert release_gates.hard_gates.min_full_oos_net_sharpe == 0.90
 
 
 def test_load_wp4_ingest_config_and_schema() -> None:

@@ -1,0 +1,36 @@
+model_release:
+  version: model_release_gates_v1
+  status_outputs:
+    - shadow_candidate
+    - defer_research
+    - reject_candidate
+    - tsmom_only
+
+  hard_gates:
+    min_full_oos_net_sharpe: 0.90
+    min_recent_8q_net_sharpe: 0.60
+    max_drawdown_vs_tsmom_multiple: 1.50
+    max_missing_feature_rate: 0.01
+    require_common_oos_universe: true
+    require_no_lookahead_checks: true
+    require_model_artifact_hashes: true
+    require_feature_set_match: true
+    require_signal_contract_match: true
+
+  reversal_gates:
+    min_event_count: 20
+    require_5d_pnl_ge_tsmom: true
+    require_20d_pnl_ge_tsmom: true
+
+  warning_gates:
+    max_turnover_vs_tsmom_multiple: 2.50
+    max_avg_modeled_cost_bps: 3.00
+    min_oos_quarters: 8
+    min_positive_oos_window_rate: 0.50
+
+  decision_policy:
+    any_hard_fail: reject_candidate
+    insufficient_reversal_events: defer_research
+    hard_pass_with_reversal_pass: shadow_candidate
+    hard_pass_reversal_mixed: defer_research
+    hard_fail_but_tsmom_valid: tsmom_only

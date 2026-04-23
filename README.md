@@ -150,6 +150,22 @@ python -m cpdshadow.cli research walkforward run \
   --output-dir data/research/walkforward/wf_cpd_lstm_v_tsmom_2020_2024
 ```
 
+## WP11 Model RC / Promotion Decision
+
+WP11 では WP10 evidence と WP9 model artifact metadata から、Shadow-only の model release
+candidate package を作ります。これは live/paper approval ではなく、必ず human review が必要です。
+
+```bash
+python -m cpdshadow.cli model-rc package \
+  --walkforward-dir data/research/walkforward/<run_id> \
+  --candidate-model-dir artifacts/models/cpd_lstm/<model_id> \
+  --release-id rc_<date>_<model> \
+  --output-dir artifacts/releases/model_rc
+
+python -m cpdshadow.cli model-rc qa \
+  --release-dir artifacts/releases/model_rc/rc_<date>_<model>
+```
+
 ## 注意
 
-この段階では、WP4-WP10 までのデータ基盤、roll、continuous、feature/CPD、fallback signal、CPD-LSTM candidate train/infer、walk-forward OOS evaluation は含みますが、**model promotion、IBKR アダプタ、注文執行** はまだ含みません。運用ゴールは引き続き **再現可能で安定した shadow execution** です。
+この段階では、WP4-WP11 までのデータ基盤、roll、continuous、feature/CPD、fallback signal、CPD-LSTM candidate train/infer、walk-forward OOS evaluation、Shadow-only model RC packaging は含みますが、**IBKR アダプタ、注文執行、live/paper approval** はまだ含みません。運用ゴールは引き続き **再現可能で安定した shadow execution** です。

@@ -19,6 +19,11 @@ from cpdshadow.ingest.features_builder import FeaturesBuilderService
 from cpdshadow.ingest.roll_engine import RollEngineService
 from cpdshadow.ingest.signals_builder import SignalsBuilderService
 from cpdshadow.instruments import load_instrument_master
+from cpdshadow.model_release import (
+    evaluate_model_release,
+    package_model_release,
+    qa_model_release,
+)
 from cpdshadow.research.reporting import write_walkforward_report
 from cpdshadow.research.walkforward import (
     WalkforwardContext,
@@ -42,6 +47,7 @@ models_app = typer.Typer(no_args_is_help=True)
 cpd_lstm_app = typer.Typer(no_args_is_help=True)
 research_app = typer.Typer(no_args_is_help=True)
 walkforward_app = typer.Typer(no_args_is_help=True)
+model_rc_app = typer.Typer(no_args_is_help=True)
 console = Console()
 
 app.add_typer(ingest_app, name="ingest")
@@ -55,6 +61,7 @@ app.add_typer(models_app, name="models")
 models_app.add_typer(cpd_lstm_app, name="cpd-lstm")
 app.add_typer(research_app, name="research")
 research_app.add_typer(walkforward_app, name="walkforward")
+app.add_typer(model_rc_app, name="model-rc")
 
 
 def _build_service(
@@ -925,6 +932,78 @@ def walkforward_report(
         warnings=[],
     )
     console.print(json.dumps({"json": json_path.as_posix(), "markdown": md_path.as_posix()}))
+
+
+@model_rc_app.command("evaluate")
+def model_rc_evaluate(
+    walkforward_dir: Path = typer.Option(...),
+    candidate_model_dir: Path = typer.Option(...),
+    gates_path: Path = typer.Option(Path("config/model_release_gates.yml")),
+    feature_set_id: str = typer.Option("features_v1"),
+    strategy_id: str = typer.Option("cpd_lstm"),
+    baseline_strategy_id: str = typer.Option("tsmom"),
+    output_file: Path | None = typer.Option(None),
+    repo_root: Path = typer.Option(Path("."), hidden=True),
+) -> None:
+    payload = evaluate_model_release(
+        walkforward_dir=_resolve_repo_path(repo_root, walkforward_dir),
+        candidate_model_dir=_resolve_repo_path(repo_root, candidate_model_dir),
+        gates_path=_resolve_repo_path(repo_root, gates_path),
+        feature_set_id=feature_set_id,
+        strategy_id=strategy_id,
+        baseline_strategy_id=baseline_strategy_id,
+    )
+    if output_file is not None:
+        target = _resolve_repo_path(repo_root, output_file)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(canonical_json_bytes(payload))
+    console.print(json.dumps(payload, indent=2, default=str))
+
+
+@model_rc_app.command("package")
+def model_rc_package(
+    walkforward_dir: Path = typer.Option(...),
+    candidate_model_dir: Path = typer.Option(...),
+    release_id: str | None = typer.Option(None),
+    output_dir: Path = typer.Option(Path("artifacts/releases/model_rc")),
+    gates_path: Path = typer.Option(Path("config/model_release_gates.yml")),
+    settings_path: Path = typer.Option(Path("config/settings.base.yml")),
+    data_schema_path: Path = typer.Option(Path("config/data_schema.yml")),
+    feature_set_id: str = typer.Option("features_v1"),
+    strategy_id: str = typer.Option("cpd_lstm"),
+    baseline_strategy_id: str = typer.Option("tsmom"),
+    created_at_utc: str | None = typer.Option(None),
+    copy_artifacts: bool = typer.Option(False),
+    write_alias: bool = typer.Option(False),
+    repo_root: Path = typer.Option(Path("."), hidden=True),
+) -> None:
+    artifact = package_model_release(
+        walkforward_dir=_resolve_repo_path(repo_root, walkforward_dir),
+        candidate_model_dir=_resolve_repo_path(repo_root, candidate_model_dir),
+        gates_path=_resolve_repo_path(repo_root, gates_path),
+        output_dir=_resolve_repo_path(repo_root, output_dir),
+        release_id=release_id,
+        created_at_utc=_parse_utc_datetime(created_at_utc) if created_at_utc else None,
+        feature_set_id=feature_set_id,
+        strategy_id=strategy_id,
+        baseline_strategy_id=baseline_strategy_id,
+        settings_path=_resolve_repo_path(repo_root, settings_path),
+        data_schema_path=_resolve_repo_path(repo_root, data_schema_path),
+        copy_artifacts=copy_artifacts,
+        write_alias=write_alias,
+    )
+    console.print(json.dumps(artifact, indent=2, default=str))
+
+
+@model_rc_app.command("qa")
+def model_rc_qa(
+    release_dir: Path = typer.Option(...),
+    repo_root: Path = typer.Option(Path("."), hidden=True),
+) -> None:
+    report = qa_model_release(_resolve_repo_path(repo_root, release_dir))
+    console.print(json.dumps(report, indent=2, default=str))
+    if report["has_errors"]:
+        raise typer.Exit(code=1)
 
 
 if __name__ == "__main__":
