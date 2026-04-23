@@ -23,6 +23,7 @@ help:
 	@echo "  make wp6-continuous-smoke-offline - run WP6 offline continuous-builder tests"
 	@echo "  make wp7-features-smoke-offline - run WP7 offline features/CPD tests"
 	@echo "  make wp8-signal-smoke-offline - run WP8 offline signal tests"
+	@echo "  make wp9-cpd-lstm-smoke-offline - run WP9 offline CPD-LSTM tests"
 	@echo "  make install-torch-cu128 - optional PyTorch CUDA 12.8 install"
 
 setup:
@@ -72,5 +73,8 @@ wp7-features-smoke-offline:
 wp8-signal-smoke-offline:
 	$(ACTIVATE) && pytest -q tests/unit/test_tsmom_signal_formula.py tests/unit/test_signal_schema_validation.py tests/unit/test_signal_artifact.py tests/integration/test_wp8_signals_cli.py
 
+wp9-cpd-lstm-smoke-offline:
+	$(ACTIVATE) && pytest -q tests/unit/test_cpd_lstm_dataset.py tests/unit/test_cpd_lstm_model.py tests/integration/test_wp9_cpd_lstm_cli.py
+
 install-torch-cu128:
-	$(ACTIVATE) && pip install --index-url https://download.pytorch.org/whl/cu128 torch torchvision torchaudio
+	$(ACTIVATE) && bash scripts/install_torch_cuda128.sh

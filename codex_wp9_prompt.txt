@@ -1,0 +1,35 @@
+Implement WP9: CPD-LSTM Model Skeleton / Training-Inference Interface v1.
+
+Read docs/codex_wp9_cpd_lstm_model_instructions.md and follow it closely.
+
+Goal:
+- Consume WP7 features_daily and WP6 continuous_daily labels.
+- Train a minimal pure-PyTorch CPD-LSTM v1 model.
+- Save self-contained model artifacts.
+- Register training_runs/model_registry rows where supported.
+- Run inference and write WP3/WP8-compatible signals_daily rows with strategy_id=cpd_lstm.
+- Add an offline synthetic smoke target: make wp9-cpd-lstm-smoke-offline.
+
+Hard constraints:
+- Do not call Databento, IBKR, or any network service.
+- Do not implement walk-forward; leave that to WP10.
+- Do not write targets_daily, order_intents, or broker-facing data.
+- TSMOM fallback from WP8 must keep working.
+- Feature order must be fixed exactly as features_v1.
+- Sequence length is 63.
+- Training label must use next root-observed continuous_daily.daily_return, not future features.
+- Inference must not require future returns.
+- Artifact reload must reproduce the same inference outputs.
+- CPU tests must pass; CUDA support should be optional/local.
+
+Suggested implementation:
+- Add src/cpdshadow/ml/{dataset.py,model.py,losses.py,artifacts.py,train.py,infer.py,qa.py}.
+- Extend config/settings.base.yml with models.cpd_lstm.
+- Extend CLI with models cpd-lstm train/infer/qa/smoke.
+- Add tests for sequence construction, label alignment, no-lookahead, standardizer train-only fit, output range, artifact round-trip, signal schema, and TSMOM still working.
+
+Run:
+make test
+make wp9-cpd-lstm-smoke-offline
+
+Keep commits small and do not over-engineer beyond the WP9 contract.

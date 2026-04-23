@@ -4,6 +4,7 @@ import json
 import os
 from datetime import UTC, date, datetime
 from pathlib import Path
+from typing import Any
 
 import typer
 from rich.console import Console
@@ -27,6 +28,8 @@ continuous_app = typer.Typer(no_args_is_help=True)
 features_app = typer.Typer(no_args_is_help=True)
 signals_app = typer.Typer(no_args_is_help=True)
 tsmom_app = typer.Typer(no_args_is_help=True)
+models_app = typer.Typer(no_args_is_help=True)
+cpd_lstm_app = typer.Typer(no_args_is_help=True)
 console = Console()
 
 app.add_typer(ingest_app, name="ingest")
@@ -36,6 +39,8 @@ app.add_typer(continuous_app, name="continuous")
 app.add_typer(features_app, name="features")
 app.add_typer(signals_app, name="signals")
 signals_app.add_typer(tsmom_app, name="tsmom")
+app.add_typer(models_app, name="models")
+models_app.add_typer(cpd_lstm_app, name="cpd-lstm")
 
 
 def _build_service(
@@ -127,6 +132,29 @@ def _build_signals_service(
         app_config=app_config,
         data_schema=data_schema,
         features_input_root=features_path,
+        signals_output_root=output_dir,
+        artifact_root=artifact_dir,
+    )
+
+
+def _build_cpd_lstm_service(
+    repo_root: Path,
+    *,
+    features_path: Path | None = None,
+    continuous_path: Path | None = None,
+    output_dir: Path | None = None,
+    artifact_dir: Path | None = None,
+) -> Any:
+    from cpdshadow.ml.train import CpdLstmModelService
+
+    app_config = load_yaml(repo_root / "config" / "settings.base.yml")
+    data_schema = load_data_schema_yaml(repo_root / "config" / "data_schema.yml")
+    return CpdLstmModelService(
+        repo_root=repo_root,
+        app_config=app_config,
+        data_schema=data_schema,
+        features_input_root=features_path,
+        continuous_input_root=continuous_path,
         signals_output_root=output_dir,
         artifact_root=artifact_dir,
     )
@@ -501,6 +529,139 @@ def signals_qa(
     console.print(json.dumps(report.to_dict(), indent=2, default=str))
     if report.has_errors:
         raise typer.Exit(code=1)
+
+
+@cpd_lstm_app.command("train")
+def cpd_lstm_train(
+    snapshot_id: str = typer.Option(...),
+    train_start: date = typer.Option(...),
+    train_end: date = typer.Option(...),
+    val_start: date = typer.Option(...),
+    val_end: date = typer.Option(...),
+    model_id: str = typer.Option(...),
+    training_run_id: str = typer.Option(...),
+    roots: str | None = typer.Option(None),
+    feature_set_id: str | None = typer.Option(None),
+    series_id: str | None = typer.Option(None),
+    features_path: Path | None = typer.Option(None),
+    continuous_path: Path | None = typer.Option(None),
+    output_dir: Path = typer.Option(...),
+    artifact_dir: Path | None = typer.Option(None),
+    max_epochs: int | None = typer.Option(None),
+    min_epochs: int | None = typer.Option(None),
+    device: str | None = typer.Option(None),
+    repo_root: Path = typer.Option(Path("."), hidden=True),
+) -> None:
+    service = _build_cpd_lstm_service(
+        repo_root,
+        features_path=features_path,
+        continuous_path=continuous_path,
+        artifact_dir=artifact_dir,
+    )
+    artifact = service.train(
+        snapshot_id=snapshot_id,
+        feature_set_id=feature_set_id,
+        series_id=series_id,
+        roots=_parse_csv(roots),
+        train_start=train_start,
+        train_end=train_end,
+        val_start=val_start,
+        val_end=val_end,
+        model_id=model_id,
+        training_run_id=training_run_id,
+        output_dir=output_dir,
+        max_epochs=max_epochs,
+        min_epochs=min_epochs,
+        device=device,
+    )
+    console.print(json.dumps(artifact, indent=2, default=str))
+
+
+@cpd_lstm_app.command("infer")
+def cpd_lstm_infer(
+    snapshot_id: str = typer.Option(...),
+    model_dir: Path = typer.Option(...),
+    model_id: str = typer.Option(...),
+    start: date = typer.Option(...),
+    end: date = typer.Option(...),
+    run_id: str = typer.Option(...),
+    created_at_utc: str = typer.Option(...),
+    roots: str | None = typer.Option(None),
+    feature_set_id: str | None = typer.Option(None),
+    features_path: Path | None = typer.Option(None),
+    output_dir: Path | None = typer.Option(None),
+    artifact_dir: Path | None = typer.Option(None),
+    overwrite: bool = typer.Option(False),
+    device: str | None = typer.Option(None),
+    repo_root: Path = typer.Option(Path("."), hidden=True),
+) -> None:
+    service = _build_cpd_lstm_service(
+        repo_root,
+        features_path=features_path,
+        output_dir=output_dir,
+        artifact_dir=artifact_dir,
+    )
+    artifact = service.infer(
+        snapshot_id=snapshot_id,
+        feature_set_id=feature_set_id,
+        model_dir=model_dir,
+        model_id=model_id,
+        start_date=start,
+        end_date=end,
+        roots=_parse_csv(roots),
+        run_id=run_id,
+        created_at_utc=_parse_utc_datetime(created_at_utc),
+        output_dir=output_dir,
+        overwrite=overwrite,
+        device=device,
+    )
+    console.print(json.dumps(artifact, indent=2, default=str))
+
+
+@cpd_lstm_app.command("qa")
+def cpd_lstm_qa(
+    model_dir: Path = typer.Option(...),
+    run_id: str = typer.Option(...),
+    model_id: str | None = typer.Option(None),
+    signals_path: Path | None = typer.Option(None),
+    artifact_dir: Path | None = typer.Option(None),
+    repo_root: Path = typer.Option(Path("."), hidden=True),
+) -> None:
+    service = _build_cpd_lstm_service(
+        repo_root,
+        output_dir=signals_path,
+        artifact_dir=artifact_dir,
+    )
+    report = service.qa(
+        model_dir=model_dir,
+        signals_path=signals_path,
+        run_id=run_id,
+        model_id=model_id,
+    )
+    table = Table(title=f"WP9 CPD-LSTM QA {run_id}")
+    table.add_column("Severity")
+    table.add_column("Code")
+    table.add_column("Message")
+    for issue in report.issues:
+        table.add_row(issue.severity, issue.code, issue.message)
+    console.print(table)
+    console.print(json.dumps(report.to_dict(), indent=2, default=str))
+    if report.has_errors:
+        raise typer.Exit(code=1)
+
+
+@cpd_lstm_app.command("smoke")
+def cpd_lstm_smoke(
+    output_root: Path = typer.Option(Path("artifacts/wp9/smoke")),
+    repo_root: Path = typer.Option(Path("."), hidden=True),
+) -> None:
+    service = _build_cpd_lstm_service(
+        repo_root,
+        artifact_dir=output_root / "artifacts" / "wp9",
+        output_dir=output_root / "data" / "research" / "signals_daily",
+    )
+    artifact = service.smoke(output_root=output_root)
+    console.print(json.dumps(artifact, indent=2, default=str))
 
 
 if __name__ == "__main__":
