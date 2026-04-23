@@ -1,0 +1,34 @@
+Implement WP10: Walk-forward Evaluation / OOS Validation / Reversal Bucket Evaluation v1.
+
+Start from the current repository state after WP9. Read and follow:
+
+- docs/codex_wp10_walkforward_eval_instructions.md
+- docs/walkforward_eval_v1.md
+- docs/decisions/0010-walkforward-evaluation-v1.md
+
+Core requirements:
+
+1. Add an offline `research walkforward` CLI group with `plan`, `run`, `evaluate-signals`, `qa`, and `report` commands.
+2. Generate quarterly walk-forward folds with production defaults: 10y train, 2y validation, next quarter OOS. Support shortened smoke parameters.
+3. Train CPD-LSTM per fold by reusing WP9 model code; do not duplicate model logic.
+4. Generate TSMOM baseline signals for the exact same OOS dates/roots by reusing WP8 code.
+5. Evaluate both strategies through the same Step 11 risk/cost/portfolio layer.
+6. Write `walkforward_windows`, OOS signals, targets, PnL, fold metrics, aggregate metrics, reversal bucket metrics, `gates.json`, and JSON/Markdown reports under `data/research/walkforward/<run_id>/`.
+7. Reversal events use fold-specific train+val-only p95 thresholds for `cpd21_score` or `cpd63_score`, with a 5-day cooldown and horizons [1, 5, 20].
+8. Add `make wp10-walkforward-smoke-offline` using synthetic fixtures only. It must not call Databento, IBKR, or any network service.
+9. Add unit/integration tests for split generation, no-lookahead, standardizer leakage, PnL alignment, strategy parity, reversal thresholds, cooldown, reporting, and idempotency.
+10. Update README and docs.
+
+Non-goals:
+
+- No hyperparameter search.
+- No model promotion; WP10 only emits readiness gates.
+- No broker or order submission.
+- No new CPD algorithm or feature engineering.
+
+Run:
+
+make test
+make wp10-walkforward-smoke-offline
+
+Fix all failures. Preserve existing WP4-WP9 behavior.

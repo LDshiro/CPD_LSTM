@@ -454,6 +454,76 @@ class ModelsConfig(BaseModel):
     cpd_lstm: CpdLstmModelConfig = Field(default_factory=CpdLstmModelConfig)
 
 
+class WalkforwardBootstrapConfig(BaseModel):
+    block_length_days: int = Field(default=20, ge=1)
+    n_bootstrap_samples: int = Field(default=200, ge=0)
+    min_observations: int = Field(default=30, ge=2)
+
+
+class WalkforwardReversalBucketConfig(BaseModel):
+    threshold_quantile: float = Field(default=0.95, gt=0.0, lt=1.0)
+    cooldown_days: int = Field(default=5, ge=0)
+    horizons: list[int] = Field(default_factory=lambda: [1, 5, 20])
+
+    @model_validator(mode="after")
+    def validate_horizons(self) -> "WalkforwardReversalBucketConfig":
+        if not self.horizons:
+            raise ValueError("walkforward reversal horizons must not be empty")
+        if any(horizon <= 0 for horizon in self.horizons):
+            raise ValueError("walkforward reversal horizons must be positive")
+        return self
+
+
+class WalkforwardGatesConfig(BaseModel):
+    full_oos_net_sharpe_min: float = 0.90
+    last_8_quarters_net_sharpe_min: float = 0.60
+    max_drawdown_vs_tsmom_max_multiple: float = Field(default=1.50, gt=0.0)
+    reversal_5d_diff_min: float = 0.0
+    reversal_20d_diff_min: float = 0.0
+    cost_to_gross_pnl_max: float = Field(default=0.50, ge=0.0)
+    min_completed_folds: int = Field(default=8, ge=0)
+
+
+class WalkforwardSmokeConfig(BaseModel):
+    train_years: int = Field(default=2, ge=1)
+    val_years: int = Field(default=1, ge=1)
+    min_train_days: int = Field(default=120, ge=1)
+    min_val_days: int = Field(default=40, ge=1)
+    min_oos_days: int = Field(default=10, ge=1)
+    max_epochs: int = Field(default=1, ge=1)
+    min_epochs: int = Field(default=1, ge=1)
+    roots: list[str] = Field(default_factory=lambda: ["ES", "NQ"])
+    n_days: int = Field(default=1100, ge=260)
+
+    @model_validator(mode="after")
+    def validate_smoke(self) -> "WalkforwardSmokeConfig":
+        if self.max_epochs < self.min_epochs:
+            raise ValueError("walkforward smoke max_epochs must be >= min_epochs")
+        if not self.roots:
+            raise ValueError("walkforward smoke roots must not be empty")
+        return self
+
+
+class WalkforwardConfig(BaseModel):
+    frequency: Literal["quarterly"] = "quarterly"
+    train_years: int = Field(default=10, ge=1)
+    val_years: int = Field(default=2, ge=1)
+    min_train_days: int = Field(default=1260, ge=1)
+    min_val_days: int = Field(default=252, ge=1)
+    min_oos_days: int = Field(default=20, ge=1)
+    sequence_length: int = Field(default=63, ge=2)
+    label_horizon_days: int = Field(default=1, ge=1)
+    global_seed: int = 1729
+    nav_usd: float = Field(default=1_000_000.0, gt=0.0)
+    initial_margin_fraction_of_notional: float = Field(default=0.10, ge=0.0)
+    report_bootstrap: WalkforwardBootstrapConfig = Field(default_factory=WalkforwardBootstrapConfig)
+    reversal_bucket: WalkforwardReversalBucketConfig = Field(
+        default_factory=WalkforwardReversalBucketConfig
+    )
+    gates: WalkforwardGatesConfig = Field(default_factory=WalkforwardGatesConfig)
+    smoke: WalkforwardSmokeConfig = Field(default_factory=WalkforwardSmokeConfig)
+
+
 class AppConfig(BaseModel):
     runtime: RuntimeConfig = Field(default_factory=RuntimeConfig)
     risk: RiskConfig = Field(default_factory=RiskConfig)
@@ -466,6 +536,7 @@ class AppConfig(BaseModel):
     signals: SignalsConfig = Field(default_factory=SignalsConfig)
     strategies: StrategiesConfig = Field(default_factory=StrategiesConfig)
     models: ModelsConfig = Field(default_factory=ModelsConfig)
+    walkforward: WalkforwardConfig = Field(default_factory=WalkforwardConfig)
 
 
 

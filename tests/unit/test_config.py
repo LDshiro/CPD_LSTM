@@ -19,6 +19,10 @@ def test_load_base_config() -> None:
     assert cfg.strategies.tsmom.model_id == "tsmom_v1"
     assert cfg.models.cpd_lstm.model_family == "cpd_lstm_v1"
     assert cfg.models.cpd_lstm.sequence_length == 63
+    assert cfg.walkforward.frequency == "quarterly"
+    assert cfg.walkforward.train_years == 10
+    assert cfg.walkforward.val_years == 2
+    assert cfg.walkforward.reversal_bucket.horizons == [1, 5, 20]
 
 
 def test_load_wp4_ingest_config_and_schema() -> None:
