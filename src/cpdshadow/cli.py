@@ -11,6 +11,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from cpdshadow.broker.ibkr.service import IbkrBrokerService
 from cpdshadow.config import load_data_schema_yaml, load_databento_ingest_yaml, load_yaml
 from cpdshadow.execution_boundary import ExecutionBoundaryService
 from cpdshadow.ids import canonical_json_bytes
@@ -50,6 +51,7 @@ research_app = typer.Typer(no_args_is_help=True)
 walkforward_app = typer.Typer(no_args_is_help=True)
 model_rc_app = typer.Typer(no_args_is_help=True)
 broker_boundary_app = typer.Typer(no_args_is_help=True)
+broker_ibkr_app = typer.Typer(no_args_is_help=True)
 console = Console()
 
 app.add_typer(ingest_app, name="ingest")
@@ -65,6 +67,7 @@ app.add_typer(research_app, name="research")
 research_app.add_typer(walkforward_app, name="walkforward")
 app.add_typer(model_rc_app, name="model-rc")
 app.add_typer(broker_boundary_app, name="broker-boundary")
+app.add_typer(broker_ibkr_app, name="broker-ibkr")
 
 
 def _build_service(
@@ -218,6 +221,10 @@ def _build_walkforward_context(
 
 def _build_execution_boundary_service(repo_root: Path) -> ExecutionBoundaryService:
     return ExecutionBoundaryService(repo_root=repo_root)
+
+
+def _build_ibkr_broker_service(repo_root: Path) -> IbkrBrokerService:
+    return IbkrBrokerService(repo_root=repo_root)
 
 
 def _resolve_repo_path(repo_root: Path, path: Path) -> Path:
@@ -1096,6 +1103,80 @@ def broker_boundary_qa(
     )
     console.print(json.dumps(report.to_dict(), indent=2, default=str))
     if report.has_errors:
+        raise typer.Exit(code=1)
+
+
+@broker_ibkr_app.command("sync-state")
+def broker_ibkr_sync_state(
+    run_id: str = typer.Option(...),
+    as_of: date = typer.Option(...),
+    mode: str = typer.Option(...),
+    output_dir: Path | None = typer.Option(None),
+    account_id: str | None = typer.Option(None),
+    contract_master_path: Path | None = typer.Option(None),
+    fixed_created_at_utc: str | None = typer.Option(None),
+    repo_root: Path = typer.Option(Path("."), hidden=True),
+) -> None:
+    service = _build_ibkr_broker_service(repo_root)
+    artifact = service.sync_state(
+        run_id=run_id,
+        broker_mode=mode,  # type: ignore[arg-type]
+        as_of_date=as_of,
+        output_dir=_resolve_repo_path(repo_root, output_dir) if output_dir is not None else None,
+        account_id=account_id,
+        contract_master_path=(
+            _resolve_repo_path(repo_root, contract_master_path)
+            if contract_master_path is not None
+            else None
+        ),
+        created_at_utc=_parse_utc_datetime(fixed_created_at_utc) if fixed_created_at_utc else None,
+    )
+    console.print(json.dumps(artifact, indent=2, default=str))
+
+
+@broker_ibkr_app.command("submit-intents")
+def broker_ibkr_submit_intents(
+    order_intents_path: Path = typer.Option(...),
+    contract_master_path: Path = typer.Option(...),
+    contracts_daily_path: Path = typer.Option(...),
+    mode: str = typer.Option(...),
+    monitoring_path: Path | None = typer.Option(None),
+    output_dir: Path | None = typer.Option(None),
+    run_id: str | None = typer.Option(None),
+    as_of: date | None = typer.Option(None),
+    account_id: str | None = typer.Option(None),
+    fixed_created_at_utc: str | None = typer.Option(None),
+    repo_root: Path = typer.Option(Path("."), hidden=True),
+) -> None:
+    service = _build_ibkr_broker_service(repo_root)
+    artifact = service.submit_intents(
+        order_intents_path=_resolve_repo_path(repo_root, order_intents_path),
+        contract_master_path=_resolve_repo_path(repo_root, contract_master_path),
+        contracts_daily_path=_resolve_repo_path(repo_root, contracts_daily_path),
+        monitoring_path=(
+            _resolve_repo_path(repo_root, monitoring_path)
+            if monitoring_path is not None
+            else None
+        ),
+        broker_mode=mode,  # type: ignore[arg-type]
+        output_dir=_resolve_repo_path(repo_root, output_dir) if output_dir is not None else None,
+        run_id=run_id,
+        as_of_date=as_of,
+        account_id=account_id,
+        created_at_utc=_parse_utc_datetime(fixed_created_at_utc) if fixed_created_at_utc else None,
+    )
+    console.print(json.dumps(artifact, indent=2, default=str))
+
+
+@broker_ibkr_app.command("qa")
+def broker_ibkr_qa(
+    workspace: Path = typer.Option(...),
+    repo_root: Path = typer.Option(Path("."), hidden=True),
+) -> None:
+    service = _build_ibkr_broker_service(repo_root)
+    report = service.qa(workspace=_resolve_repo_path(repo_root, workspace))
+    console.print(json.dumps(report, indent=2, default=str))
+    if report["has_errors"]:
         raise typer.Exit(code=1)
 
 

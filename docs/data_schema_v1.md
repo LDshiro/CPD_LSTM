@@ -1,6 +1,6 @@
 # Data Schema v1.0
 
-- Status: Frozen for WP4-WP12 implementation
+- Status: Frozen for WP4-WP13 implementation
 - Effective date: 2026-04-20
 
 ## Purpose
@@ -15,8 +15,11 @@ WP10 adds run-local walk-forward evaluation outputs for OOS comparison, target s
 reversal buckets, aggregate metrics, readiness gates, and reports.
 WP12 extends the operational contract with broker-boundary targets, position snapshots,
 broker-neutral order intents, and journal events for dry-run execution handling.
+WP13 extends the operational contract with IBKR-native broker snapshots, broker-facing
+order enrichment, and paper-shadow reconciliation artifacts while preserving the WP12
+broker-neutral planning layer.
 The canonical persisted format remains partitioned Parquet datasets. The DuckDB SQL file in `sql/duckdb_schema_v1.sql`
-exists as an executable schema contract, not as a requirement to persist a `.duckdb` file during WP4-WP12.
+exists as an executable schema contract, not as a requirement to persist a `.duckdb` file during WP4-WP13.
 
 ## Tables
 
@@ -81,6 +84,14 @@ as input only; it does not recompute targets or replace the Step 11 sizing layer
 
 One row per current broker-neutral inventory line keyed by snapshot id, execution mode, root, and
 raw symbol. WP12 uses these rows to plan rolls and rebalances from actual raw-symbol inventory.
+WP13 widens the table with `account_id`, `broker_contract_key`, `avg_cost`, and `source`, and
+allows unresolved `root` / `raw_symbol` values to remain null when IBKR snapshot rows cannot be
+mapped safely.
+
+### `broker_open_orders_snapshot`
+
+One row per normalized IBKR open-order snapshot line. WP13 writes this table from TWS / IB Gateway
+callbacks so broker state can be reviewed offline without depending on broker-native payload shapes.
 
 ### `monitoring_daily`
 
@@ -91,7 +102,9 @@ aligned with the final monitoring action before generating order intents.
 
 One row per broker-neutral execution intent. WP12 writes `planned` intermediate intents and final
 offline intents with statuses restricted to `not_sent` and `rejected`; no submitted or fill states
-exist in WP12.
+exist in WP12. WP13 widens the table with broker enrichment fields such as `broker_name`,
+`broker_mode`, `broker_contract_key`, `broker_request_id`, `ib_order_id`, `perm_id`, `account_id`,
+broker error metadata, and `updated_at_utc`.
 
 ### `journal_events`
 
@@ -121,4 +134,7 @@ OOS PnL, fold metrics, aggregate metrics, reversal events, reversal bucket metri
   evaluation artifacts, not broker-facing order instructions.
 - WP12 broker-boundary outputs are written under `data/shadow/execution_boundary/run_id=<run_id>`
   and remain offline dry-run artifacts; they are not broker submissions.
+- WP13 broker adapter outputs are written under `data/shadow/broker/ibkr/run_id=<run_id>`, including
+  normalized broker snapshots, translated request previews, reconciled order intents, callback logs,
+  and QA/report artifacts.
 - `quality_flags` is stored as a sorted list of strings.

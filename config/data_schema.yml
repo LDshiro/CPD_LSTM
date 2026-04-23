@@ -577,17 +577,79 @@ tables:
         dtype: string
       - name: broker_contract_id
         dtype: string
+      - name: broker_contract_key
+        dtype: string
       - name: raw_symbol
         dtype: string
-        nullable: false
       - name: root
         dtype: string
-        nullable: false
       - name: position_contracts
         dtype: int64
         nullable: false
+      - name: avg_cost
+        dtype: double
       - name: snapshot_time_utc
         dtype: timestamp_tz
+        nullable: false
+      - name: source
+        dtype: string
+        nullable: false
+  broker_open_orders_snapshot:
+    columns:
+      - name: open_orders_snapshot_id
+        dtype: string
+        nullable: false
+      - name: run_id
+        dtype: string
+        nullable: false
+      - name: execution_mode
+        dtype: string
+        nullable: false
+      - name: account_id
+        dtype: string
+        nullable: false
+      - name: captured_at_utc
+        dtype: timestamp_tz
+        nullable: false
+      - name: client_id
+        dtype: int64
+      - name: ib_order_id
+        dtype: int64
+      - name: perm_id
+        dtype: int64
+      - name: broker_contract_id
+        dtype: string
+      - name: broker_contract_key
+        dtype: string
+      - name: raw_symbol
+        dtype: string
+      - name: root
+        dtype: string
+      - name: action
+        dtype: string
+        nullable: false
+      - name: total_quantity
+        dtype: int64
+        nullable: false
+      - name: filled_quantity
+        dtype: int64
+        nullable: false
+      - name: remaining_quantity
+        dtype: int64
+        nullable: false
+      - name: order_type
+        dtype: string
+        nullable: false
+      - name: tif
+        dtype: string
+        nullable: false
+      - name: limit_price
+        dtype: double
+      - name: status
+        dtype: string
+        nullable: false
+      - name: source
+        dtype: string
         nullable: false
   monitoring_daily:
     columns:
@@ -640,6 +702,20 @@ tables:
         nullable: false
       - name: broker_contract_id
         dtype: string
+      - name: broker_name
+        dtype: string
+      - name: broker_mode
+        dtype: string
+      - name: broker_contract_key
+        dtype: string
+      - name: broker_request_id
+        dtype: string
+      - name: ib_order_id
+        dtype: int64
+      - name: perm_id
+        dtype: int64
+      - name: account_id
+        dtype: string
       - name: side
         dtype: string
         nullable: false
@@ -668,10 +744,16 @@ tables:
         nullable: false
       - name: rejection_reason
         dtype: string
+      - name: broker_error_code
+        dtype: string
+      - name: broker_error_message
+        dtype: string
       - name: created_at_utc
         dtype: timestamp_tz
         nullable: false
       - name: submitted_at_utc
+        dtype: timestamp_tz
+      - name: updated_at_utc
         dtype: timestamp_tz
   journal_events:
     columns:

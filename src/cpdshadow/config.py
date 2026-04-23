@@ -524,12 +524,62 @@ class WalkforwardConfig(BaseModel):
     smoke: WalkforwardSmokeConfig = Field(default_factory=WalkforwardSmokeConfig)
 
 
+class BrokerIbkrConfig(BaseModel):
+    broker_name: Literal["ibkr_tws_api"] = "ibkr_tws_api"
+    host_env: str = "IBKR_HOST"
+    port_env: str = "IBKR_PORT"
+    client_id_env: str = "IBKR_CLIENT_ID"
+    account_env: str = "IBKR_ACCOUNT"
+    paper_guard_env: str = "CPDSHADOW_ENABLE_PAPER_SUBMIT"
+    live_tests_env: str = "CPDSHADOW_RUN_IBKR_TESTS"
+    allowed_accounts: list[str] = Field(default_factory=lambda: ["DU0000000"])
+    paper_account_prefixes: list[str] = Field(default_factory=lambda: ["DU"])
+    connect_timeout_seconds: int = Field(default=10, ge=1)
+    callback_timeout_seconds: int = Field(default=10, ge=1)
+    default_tif: Literal["DAY"] = "DAY"
+    outside_rth: bool = False
+    reference_max_age_days: int = Field(default=7, ge=0)
+    paper_buffer_bps: float = Field(default=5.0, ge=0.0)
+    supported_modes: list[str] = Field(
+        default_factory=lambda: ["shadow_only", "paper_submit"]
+    )
+    account_summary_tags: list[str] = Field(
+        default_factory=lambda: [
+            "NetLiquidation",
+            "ExcessLiquidity",
+            "InitMarginReq",
+            "MaintMarginReq",
+            "BuyingPower",
+            "AvailableFunds",
+        ]
+    )
+
+    @model_validator(mode="after")
+    def validate_broker_config(self) -> "BrokerIbkrConfig":
+        if self.supported_modes != ["shadow_only", "paper_submit"]:
+            raise ValueError(
+                "broker.ibkr.supported_modes must be ['shadow_only', 'paper_submit']"
+            )
+        if not self.allowed_accounts:
+            raise ValueError("broker.ibkr.allowed_accounts must not be empty")
+        if not self.paper_account_prefixes:
+            raise ValueError("broker.ibkr.paper_account_prefixes must not be empty")
+        if not self.account_summary_tags:
+            raise ValueError("broker.ibkr.account_summary_tags must not be empty")
+        return self
+
+
+class BrokerConfig(BaseModel):
+    ibkr: BrokerIbkrConfig = Field(default_factory=BrokerIbkrConfig)
+
+
 class AppConfig(BaseModel):
     runtime: RuntimeConfig = Field(default_factory=RuntimeConfig)
     risk: RiskConfig = Field(default_factory=RiskConfig)
     portfolio: PortfolioConfig = Field(default_factory=PortfolioConfig)
     costs: CostsConfig = Field(default_factory=CostsConfig)
     monitoring: MonitoringConfig = Field(default_factory=MonitoringConfig)
+    broker: BrokerConfig = Field(default_factory=BrokerConfig)
     roll: RollConfig = Field(default_factory=RollConfig)
     continuous: ContinuousConfig = Field(default_factory=ContinuousConfig)
     features: FeaturesConfig = Field(default_factory=FeaturesConfig)
