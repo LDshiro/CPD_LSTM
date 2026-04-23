@@ -524,3 +524,186 @@ tables:
         nullable: false
       - name: notes
         dtype: string
+  targets_daily:
+    columns:
+      - name: run_id
+        dtype: string
+        nullable: false
+      - name: strategy_id
+        dtype: string
+        nullable: false
+      - name: execution_mode
+        dtype: string
+        nullable: false
+      - name: as_of_date
+        dtype: date
+        nullable: false
+      - name: execution_date
+        dtype: date
+        nullable: false
+      - name: root
+        dtype: string
+        nullable: false
+      - name: lead_raw_symbol
+        dtype: string
+        nullable: false
+      - name: target_contracts
+        dtype: int64
+        nullable: false
+      - name: current_contracts
+        dtype: int64
+      - name: order_delta_contracts
+        dtype: int64
+      - name: control_action
+        dtype: string
+        nullable: false
+      - name: model_id
+        dtype: string
+      - name: quality_flags
+        dtype: string_list
+      - name: created_at_utc
+        dtype: timestamp_tz
+  broker_positions_snapshot:
+    columns:
+      - name: position_snapshot_id
+        dtype: string
+        nullable: false
+      - name: run_id
+        dtype: string
+      - name: execution_mode
+        dtype: string
+        nullable: false
+      - name: account_id
+        dtype: string
+      - name: broker_contract_id
+        dtype: string
+      - name: raw_symbol
+        dtype: string
+        nullable: false
+      - name: root
+        dtype: string
+        nullable: false
+      - name: position_contracts
+        dtype: int64
+        nullable: false
+      - name: snapshot_time_utc
+        dtype: timestamp_tz
+        nullable: false
+  monitoring_daily:
+    columns:
+      - name: run_id
+        dtype: string
+        nullable: false
+      - name: execution_mode
+        dtype: string
+        nullable: false
+      - name: as_of_date
+        dtype: date
+        nullable: false
+      - name: execution_date
+        dtype: date
+        nullable: false
+      - name: final_action
+        dtype: string
+        nullable: false
+      - name: highest_severity
+        dtype: string
+      - name: alerts_json
+        dtype: string
+      - name: created_at_utc
+        dtype: timestamp_tz
+  order_intents:
+    columns:
+      - name: order_intent_id
+        dtype: string
+        nullable: false
+      - name: run_id
+        dtype: string
+        nullable: false
+      - name: strategy_id
+        dtype: string
+        nullable: false
+      - name: execution_mode
+        dtype: string
+        nullable: false
+      - name: as_of_date
+        dtype: date
+        nullable: false
+      - name: execution_date
+        dtype: date
+        nullable: false
+      - name: root
+        dtype: string
+        nullable: false
+      - name: raw_symbol
+        dtype: string
+        nullable: false
+      - name: broker_contract_id
+        dtype: string
+      - name: side
+        dtype: string
+        nullable: false
+      - name: quantity
+        dtype: int64
+        nullable: false
+      - name: order_type
+        dtype: string
+        nullable: false
+      - name: limit_price
+        dtype: double
+      - name: reason
+        dtype: string
+        nullable: false
+      - name: status
+        dtype: string
+        nullable: false
+      - name: control_action
+        dtype: string
+        nullable: false
+      - name: position_snapshot_id
+        dtype: string
+        nullable: false
+      - name: sequence_no
+        dtype: int64
+        nullable: false
+      - name: rejection_reason
+        dtype: string
+      - name: created_at_utc
+        dtype: timestamp_tz
+        nullable: false
+      - name: submitted_at_utc
+        dtype: timestamp_tz
+  journal_events:
+    columns:
+      - name: event_id
+        dtype: string
+        nullable: false
+      - name: run_id
+        dtype: string
+        nullable: false
+      - name: execution_mode
+        dtype: string
+        nullable: false
+      - name: as_of_date
+        dtype: date
+      - name: execution_date
+        dtype: date
+      - name: root
+        dtype: string
+      - name: component
+        dtype: string
+        nullable: false
+      - name: severity
+        dtype: string
+        nullable: false
+      - name: code
+        dtype: string
+        nullable: false
+      - name: message
+        dtype: string
+        nullable: false
+      - name: details_json
+        dtype: string
+      - name: created_at_utc
+        dtype: timestamp_tz
+        nullable: false

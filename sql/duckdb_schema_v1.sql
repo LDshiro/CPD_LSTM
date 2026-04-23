@@ -225,3 +225,82 @@ CREATE TABLE model_registry (
     registered_at_utc TIMESTAMPTZ NOT NULL,
     notes VARCHAR
 );
+
+CREATE TABLE targets_daily (
+    run_id VARCHAR NOT NULL,
+    strategy_id VARCHAR NOT NULL,
+    execution_mode VARCHAR NOT NULL,
+    as_of_date DATE NOT NULL,
+    execution_date DATE NOT NULL,
+    root VARCHAR NOT NULL,
+    lead_raw_symbol VARCHAR NOT NULL,
+    target_contracts BIGINT NOT NULL,
+    current_contracts BIGINT,
+    order_delta_contracts BIGINT,
+    control_action VARCHAR NOT NULL,
+    model_id VARCHAR,
+    quality_flags VARCHAR[],
+    created_at_utc TIMESTAMPTZ
+);
+
+CREATE TABLE broker_positions_snapshot (
+    position_snapshot_id VARCHAR NOT NULL,
+    run_id VARCHAR,
+    execution_mode VARCHAR NOT NULL,
+    account_id VARCHAR,
+    broker_contract_id VARCHAR,
+    raw_symbol VARCHAR NOT NULL,
+    root VARCHAR NOT NULL,
+    position_contracts BIGINT NOT NULL,
+    snapshot_time_utc TIMESTAMPTZ NOT NULL
+);
+
+CREATE TABLE monitoring_daily (
+    run_id VARCHAR NOT NULL,
+    execution_mode VARCHAR NOT NULL,
+    as_of_date DATE NOT NULL,
+    execution_date DATE NOT NULL,
+    final_action VARCHAR NOT NULL,
+    highest_severity VARCHAR,
+    alerts_json VARCHAR,
+    created_at_utc TIMESTAMPTZ
+);
+
+CREATE TABLE order_intents (
+    order_intent_id VARCHAR NOT NULL,
+    run_id VARCHAR NOT NULL,
+    strategy_id VARCHAR NOT NULL,
+    execution_mode VARCHAR NOT NULL,
+    as_of_date DATE NOT NULL,
+    execution_date DATE NOT NULL,
+    root VARCHAR NOT NULL,
+    raw_symbol VARCHAR NOT NULL,
+    broker_contract_id VARCHAR,
+    side VARCHAR NOT NULL,
+    quantity BIGINT NOT NULL,
+    order_type VARCHAR NOT NULL,
+    limit_price DOUBLE,
+    reason VARCHAR NOT NULL,
+    status VARCHAR NOT NULL,
+    control_action VARCHAR NOT NULL,
+    position_snapshot_id VARCHAR NOT NULL,
+    sequence_no BIGINT NOT NULL,
+    rejection_reason VARCHAR,
+    created_at_utc TIMESTAMPTZ NOT NULL,
+    submitted_at_utc TIMESTAMPTZ
+);
+
+CREATE TABLE journal_events (
+    event_id VARCHAR NOT NULL,
+    run_id VARCHAR NOT NULL,
+    execution_mode VARCHAR NOT NULL,
+    as_of_date DATE,
+    execution_date DATE,
+    root VARCHAR,
+    component VARCHAR NOT NULL,
+    severity VARCHAR NOT NULL,
+    code VARCHAR NOT NULL,
+    message VARCHAR NOT NULL,
+    details_json VARCHAR,
+    created_at_utc TIMESTAMPTZ NOT NULL
+);

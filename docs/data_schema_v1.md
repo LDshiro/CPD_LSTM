@@ -1,6 +1,6 @@
 # Data Schema v1.0
 
-- Status: Frozen for WP4-WP10 implementation
+- Status: Frozen for WP4-WP12 implementation
 - Effective date: 2026-04-20
 
 ## Purpose
@@ -13,8 +13,10 @@ WP8 extends that contract with deterministic strategy outputs derived from WP7 f
 WP9 extends that contract with candidate CPD-LSTM training artifacts and CPD-LSTM inference signals.
 WP10 adds run-local walk-forward evaluation outputs for OOS comparison, target sizing, PnL,
 reversal buckets, aggregate metrics, readiness gates, and reports.
+WP12 extends the operational contract with broker-boundary targets, position snapshots,
+broker-neutral order intents, and journal events for dry-run execution handling.
 The canonical persisted format remains partitioned Parquet datasets. The DuckDB SQL file in `sql/duckdb_schema_v1.sql`
-exists as an executable schema contract, not as a requirement to persist a `.duckdb` file during WP4-WP10.
+exists as an executable schema contract, not as a requirement to persist a `.duckdb` file during WP4-WP12.
 
 ## Tables
 
@@ -70,6 +72,32 @@ One row per CPD-LSTM train invocation. WP9 records candidate training windows, s
 
 One row per CPD-LSTM artifact. WP9 registers artifacts as `candidate` only; model promotion to `shadow` is reserved for later work.
 
+### `targets_daily`
+
+One row per selected operational root target for a single execution batch. WP12 consumes `targets_daily`
+as input only; it does not recompute targets or replace the Step 11 sizing layer.
+
+### `broker_positions_snapshot`
+
+One row per current broker-neutral inventory line keyed by snapshot id, execution mode, root, and
+raw symbol. WP12 uses these rows to plan rolls and rebalances from actual raw-symbol inventory.
+
+### `monitoring_daily`
+
+One row per operational monitoring decision batch. WP12 optionally validates that target rows are
+aligned with the final monitoring action before generating order intents.
+
+### `order_intents`
+
+One row per broker-neutral execution intent. WP12 writes `planned` intermediate intents and final
+offline intents with statuses restricted to `not_sent` and `rejected`; no submitted or fill states
+exist in WP12.
+
+### `journal_events`
+
+Append-only operational event rows for execution-boundary build, dry-run validation, and QA.
+WP12 uses them for deterministic warnings, critical blockers, and stage summaries.
+
 ### WP10 run-local research outputs
 
 WP10 does not add global canonical WP3 tables. It writes run-local Parquet files under
@@ -91,4 +119,6 @@ OOS PnL, fold metrics, aggregate metrics, reversal events, reversal bucket metri
 - WP9 CPD-LSTM inference reuses the WP8 signal output layout with `strategy_id=cpd_lstm`.
 - WP10 walk-forward outputs are written under `data/research/walkforward/<run_id>` and are
   evaluation artifacts, not broker-facing order instructions.
+- WP12 broker-boundary outputs are written under `data/shadow/execution_boundary/run_id=<run_id>`
+  and remain offline dry-run artifacts; they are not broker submissions.
 - `quality_flags` is stored as a sorted list of strings.
