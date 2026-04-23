@@ -1,0 +1,40 @@
+execution_boundary:
+  version: execution_boundary_v1
+  default_order_type: marketable_limit
+
+  lifecycle:
+    planned_status: planned
+    valid_final_status: not_sent
+    invalid_final_status: rejected
+
+  action_policy:
+    supported_actions:
+      - run_cpd_lstm
+      - fallback_tsmom
+      - hold
+      - reduce_only
+    expected_strategy_by_action:
+      run_cpd_lstm: cpd_lstm
+      fallback_tsmom: tsmom
+
+  reduce_only:
+    allow_replacement_roll: true
+    allow_flip: false
+    clip_to_current_abs: true
+
+  validation:
+    fail_on_unknown_contract: true
+    fail_on_duplicate_target_root: true
+    fail_on_mixed_sign_inventory: true
+    fail_on_missing_monitoring_alignment: true
+    fail_on_nonpositive_quantity: true
+    fail_on_execution_date_before_asof: true
+
+  sorting:
+    close_non_lead_first: true
+    close_lead_before_open_lead: true
+
+  outputs:
+    write_json: true
+    write_parquet: true
+    write_markdown_report: true

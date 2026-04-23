@@ -12,6 +12,7 @@ from rich.console import Console
 from rich.table import Table
 
 from cpdshadow.config import load_data_schema_yaml, load_databento_ingest_yaml, load_yaml
+from cpdshadow.execution_boundary import ExecutionBoundaryService
 from cpdshadow.ids import canonical_json_bytes
 from cpdshadow.ingest.continuous_builder import ContinuousBuilderService
 from cpdshadow.ingest.databento_raw import DatabentoIngestService
@@ -48,6 +49,7 @@ cpd_lstm_app = typer.Typer(no_args_is_help=True)
 research_app = typer.Typer(no_args_is_help=True)
 walkforward_app = typer.Typer(no_args_is_help=True)
 model_rc_app = typer.Typer(no_args_is_help=True)
+broker_boundary_app = typer.Typer(no_args_is_help=True)
 console = Console()
 
 app.add_typer(ingest_app, name="ingest")
@@ -62,6 +64,7 @@ models_app.add_typer(cpd_lstm_app, name="cpd-lstm")
 app.add_typer(research_app, name="research")
 research_app.add_typer(walkforward_app, name="walkforward")
 app.add_typer(model_rc_app, name="model-rc")
+app.add_typer(broker_boundary_app, name="broker-boundary")
 
 
 def _build_service(
@@ -211,6 +214,10 @@ def _build_walkforward_context(
         output_dir=_resolve_repo_path(repo_root, output_dir),
         settings_path=settings_resolved,
     )
+
+
+def _build_execution_boundary_service(repo_root: Path) -> ExecutionBoundaryService:
+    return ExecutionBoundaryService(repo_root=repo_root)
 
 
 def _resolve_repo_path(repo_root: Path, path: Path) -> Path:
@@ -1003,6 +1010,92 @@ def model_rc_qa(
     report = qa_model_release(_resolve_repo_path(repo_root, release_dir))
     console.print(json.dumps(report, indent=2, default=str))
     if report["has_errors"]:
+        raise typer.Exit(code=1)
+
+
+@broker_boundary_app.command("build-intents")
+def broker_boundary_build_intents(
+    targets_path: Path = typer.Option(...),
+    positions_path: Path = typer.Option(...),
+    contract_master_path: Path = typer.Option(...),
+    monitoring_path: Path | None = typer.Option(None),
+    output_dir: Path | None = typer.Option(None),
+    run_id: str | None = typer.Option(None),
+    strategy_id: str | None = typer.Option(None),
+    execution_mode: str | None = typer.Option(None),
+    as_of_date: date | None = typer.Option(None),
+    execution_date: date | None = typer.Option(None),
+    position_snapshot_id: str | None = typer.Option(None),
+    fixed_created_at_utc: str | None = typer.Option(None),
+    strict: bool = typer.Option(True),
+    repo_root: Path = typer.Option(Path("."), hidden=True),
+) -> None:
+    service = _build_execution_boundary_service(repo_root)
+    artifact = service.build_intents(
+        targets_path=_resolve_repo_path(repo_root, targets_path),
+        positions_path=_resolve_repo_path(repo_root, positions_path),
+        contract_master_path=_resolve_repo_path(repo_root, contract_master_path),
+        monitoring_path=(
+            _resolve_repo_path(repo_root, monitoring_path)
+            if monitoring_path is not None
+            else None
+        ),
+        output_dir=_resolve_repo_path(repo_root, output_dir) if output_dir is not None else None,
+        run_id=run_id,
+        strategy_id=strategy_id,
+        execution_mode=execution_mode,
+        as_of_date=as_of_date,
+        execution_date=execution_date,
+        position_snapshot_id=position_snapshot_id,
+        strict=strict,
+        created_at_utc=_parse_utc_datetime(fixed_created_at_utc) if fixed_created_at_utc else None,
+    )
+    console.print(json.dumps(artifact, indent=2, default=str))
+
+
+@broker_boundary_app.command("dry-run")
+def broker_boundary_dry_run(
+    planned_intents_path: Path = typer.Option(...),
+    contract_master_path: Path = typer.Option(...),
+    output_dir: Path | None = typer.Option(None),
+    fixed_created_at_utc: str | None = typer.Option(None),
+    repo_root: Path = typer.Option(Path("."), hidden=True),
+) -> None:
+    service = _build_execution_boundary_service(repo_root)
+    artifact = service.dry_run(
+        planned_intents_path=_resolve_repo_path(repo_root, planned_intents_path),
+        contract_master_path=_resolve_repo_path(repo_root, contract_master_path),
+        output_dir=_resolve_repo_path(repo_root, output_dir) if output_dir is not None else None,
+        created_at_utc=_parse_utc_datetime(fixed_created_at_utc) if fixed_created_at_utc else None,
+    )
+    console.print(json.dumps(artifact, indent=2, default=str))
+
+
+@broker_boundary_app.command("qa")
+def broker_boundary_qa(
+    targets_path: Path = typer.Option(...),
+    positions_path: Path = typer.Option(...),
+    final_order_intents_path: Path = typer.Option(...),
+    monitoring_path: Path | None = typer.Option(None),
+    output_dir: Path | None = typer.Option(None),
+    fixed_created_at_utc: str | None = typer.Option(None),
+    repo_root: Path = typer.Option(Path("."), hidden=True),
+) -> None:
+    service = _build_execution_boundary_service(repo_root)
+    report = service.qa(
+        targets_path=_resolve_repo_path(repo_root, targets_path),
+        positions_path=_resolve_repo_path(repo_root, positions_path),
+        final_order_intents_path=_resolve_repo_path(repo_root, final_order_intents_path),
+        monitoring_path=(
+            _resolve_repo_path(repo_root, monitoring_path)
+            if monitoring_path is not None
+            else None
+        ),
+        output_dir=_resolve_repo_path(repo_root, output_dir) if output_dir is not None else None,
+        created_at_utc=_parse_utc_datetime(fixed_created_at_utc) if fixed_created_at_utc else None,
+    )
+    console.print(json.dumps(report.to_dict(), indent=2, default=str))
+    if report.has_errors:
         raise typer.Exit(code=1)
 
 

@@ -1,6 +1,11 @@
 from pathlib import Path
 
-from cpdshadow.config import load_data_schema_yaml, load_databento_ingest_yaml, load_yaml
+from cpdshadow.config import (
+    load_data_schema_yaml,
+    load_databento_ingest_yaml,
+    load_execution_boundary_yaml,
+    load_yaml,
+)
 from cpdshadow.model_release import load_model_release_gates
 
 
@@ -27,6 +32,10 @@ def test_load_base_config() -> None:
     release_gates = load_model_release_gates(Path("config/model_release_gates.yml"))
     assert release_gates.version == "model_release_gates_v1"
     assert release_gates.hard_gates.min_full_oos_net_sharpe == 0.90
+    execution_boundary = load_execution_boundary_yaml(Path("config/execution_boundary.yml"))
+    assert execution_boundary.version == "execution_boundary_v1"
+    assert execution_boundary.default_order_type == "marketable_limit"
+    assert execution_boundary.reduce_only.allow_replacement_roll is True
 
 
 def test_load_wp4_ingest_config_and_schema() -> None:
@@ -43,3 +52,8 @@ def test_load_wp4_ingest_config_and_schema() -> None:
     assert "signals_daily" in schema_cfg.tables
     assert "training_runs" in schema_cfg.tables
     assert "model_registry" in schema_cfg.tables
+    assert "targets_daily" in schema_cfg.tables
+    assert "broker_positions_snapshot" in schema_cfg.tables
+    assert "monitoring_daily" in schema_cfg.tables
+    assert "order_intents" in schema_cfg.tables
+    assert "journal_events" in schema_cfg.tables

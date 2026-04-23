@@ -640,6 +640,82 @@ class DataSchemaConfig(BaseModel):
     tables: dict[str, TableSchemaConfig]
 
 
+class ExecutionBoundaryLifecycleConfig(BaseModel):
+    planned_status: Literal["planned"] = "planned"
+    valid_final_status: Literal["not_sent"] = "not_sent"
+    invalid_final_status: Literal["rejected"] = "rejected"
+
+
+class ExecutionBoundaryActionPolicyConfig(BaseModel):
+    supported_actions: list[str] = Field(default_factory=lambda: [
+        "run_cpd_lstm",
+        "fallback_tsmom",
+        "hold",
+        "reduce_only",
+    ])
+    expected_strategy_by_action: dict[str, str] = Field(default_factory=lambda: {
+        "run_cpd_lstm": "cpd_lstm",
+        "fallback_tsmom": "tsmom",
+    })
+
+    @model_validator(mode="after")
+    def validate_actions(self) -> "ExecutionBoundaryActionPolicyConfig":
+        supported = set(self.supported_actions)
+        required = {"run_cpd_lstm", "fallback_tsmom", "hold", "reduce_only"}
+        if supported != required:
+            raise ValueError("execution boundary supported_actions must match the canonical WP12 actions")
+        if set(self.expected_strategy_by_action) != {"run_cpd_lstm", "fallback_tsmom"}:
+            raise ValueError(
+                "expected_strategy_by_action must define run_cpd_lstm and fallback_tsmom only"
+            )
+        return self
+
+
+class ExecutionBoundaryReduceOnlyConfig(BaseModel):
+    allow_replacement_roll: bool = True
+    allow_flip: bool = False
+    clip_to_current_abs: bool = True
+
+
+class ExecutionBoundaryValidationConfig(BaseModel):
+    fail_on_unknown_contract: bool = True
+    fail_on_duplicate_target_root: bool = True
+    fail_on_mixed_sign_inventory: bool = True
+    fail_on_missing_monitoring_alignment: bool = True
+    fail_on_nonpositive_quantity: bool = True
+    fail_on_execution_date_before_asof: bool = True
+
+
+class ExecutionBoundarySortingConfig(BaseModel):
+    close_non_lead_first: bool = True
+    close_lead_before_open_lead: bool = True
+
+
+class ExecutionBoundaryOutputsConfig(BaseModel):
+    write_json: bool = True
+    write_parquet: bool = True
+    write_markdown_report: bool = True
+
+
+class ExecutionBoundaryConfig(BaseModel):
+    version: Literal["execution_boundary_v1"] = "execution_boundary_v1"
+    default_order_type: Literal["marketable_limit"] = "marketable_limit"
+    lifecycle: ExecutionBoundaryLifecycleConfig = Field(
+        default_factory=ExecutionBoundaryLifecycleConfig
+    )
+    action_policy: ExecutionBoundaryActionPolicyConfig = Field(
+        default_factory=ExecutionBoundaryActionPolicyConfig
+    )
+    reduce_only: ExecutionBoundaryReduceOnlyConfig = Field(
+        default_factory=ExecutionBoundaryReduceOnlyConfig
+    )
+    validation: ExecutionBoundaryValidationConfig = Field(
+        default_factory=ExecutionBoundaryValidationConfig
+    )
+    sorting: ExecutionBoundarySortingConfig = Field(default_factory=ExecutionBoundarySortingConfig)
+    outputs: ExecutionBoundaryOutputsConfig = Field(default_factory=ExecutionBoundaryOutputsConfig)
+
+
 def _load_yaml_raw(path: str | Path) -> dict[str, Any]:
     with Path(path).open("r", encoding="utf-8") as f:
         return yaml.safe_load(f) or {}
@@ -655,3 +731,9 @@ def load_databento_ingest_yaml(path: str | Path) -> DatabentoIngestConfig:
 
 def load_data_schema_yaml(path: str | Path) -> DataSchemaConfig:
     return DataSchemaConfig.model_validate(_load_yaml_raw(path))
+
+
+def load_execution_boundary_yaml(path: str | Path) -> ExecutionBoundaryConfig:
+    raw = _load_yaml_raw(path)
+    payload = raw.get("execution_boundary", raw)
+    return ExecutionBoundaryConfig.model_validate(payload)

@@ -166,6 +166,33 @@ python -m cpdshadow.cli model-rc qa \
   --release-dir artifacts/releases/model_rc/rc_<date>_<model>
 ```
 
+## WP12 Broker Boundary / Dry-Run Adapter
+
+WP12 では `targets_daily`、`broker_positions_snapshot`、`contract_master` を入力に、
+broker-neutral な `order_intents` と `journal_events` を dry-run で生成します。
+この段階では broker 接続や注文送信は行わず、最終 status は `not_sent` または `rejected` のみです。
+
+```bash
+python -m cpdshadow.cli broker-boundary build-intents \
+  --targets-path data/shadow/targets_daily \
+  --positions-path data/shadow/broker_positions_snapshot \
+  --contract-master-path data/curated/contract_master \
+  --run-id shadow_run_001 \
+  --execution-mode shadow \
+  --output-dir data/shadow/execution_boundary/run_id=shadow_run_001
+
+python -m cpdshadow.cli broker-boundary dry-run \
+  --planned-intents-path data/shadow/execution_boundary/run_id=shadow_run_001/planned_order_intents.parquet \
+  --contract-master-path data/curated/contract_master \
+  --output-dir data/shadow/execution_boundary/run_id=shadow_run_001
+
+python -m cpdshadow.cli broker-boundary qa \
+  --targets-path data/shadow/targets_daily \
+  --positions-path data/shadow/broker_positions_snapshot \
+  --final-order-intents-path data/shadow/execution_boundary/run_id=shadow_run_001/order_intents.parquet \
+  --output-dir data/shadow/execution_boundary/run_id=shadow_run_001
+```
+
 ## 注意
 
-この段階では、WP4-WP11 までのデータ基盤、roll、continuous、feature/CPD、fallback signal、CPD-LSTM candidate train/infer、walk-forward OOS evaluation、Shadow-only model RC packaging は含みますが、**IBKR アダプタ、注文執行、live/paper approval** はまだ含みません。運用ゴールは引き続き **再現可能で安定した shadow execution** です。
+この段階では、WP4-WP12 までのデータ基盤、roll、continuous、feature/CPD、fallback signal、CPD-LSTM candidate train/infer、walk-forward OOS evaluation、Shadow-only model RC packaging、broker-neutral dry-run order intent generation は含みますが、**IBKR アダプタ、注文送信、fills、live/paper approval** はまだ含みません。運用ゴールは引き続き **再現可能で安定した shadow execution** です。

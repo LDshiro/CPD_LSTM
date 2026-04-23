@@ -1,0 +1,37 @@
+Implement WP12: Broker Boundary / Order Intent / Dry-Run Adapter v1.
+
+Read and follow:
+- docs/codex_wp12_broker_boundary_instructions.md
+- docs/broker_boundary_v1.md
+- docs/decisions/0012-broker-boundary-dry-run-v1.md
+
+Main goal:
+- consume targets_daily + broker_positions_snapshot + contract_master
+- build deterministic planned order intents
+- apply hold / fallback_tsmom / reduce_only / run_cpd_lstm logic
+- handle roll from actual current raw-symbol inventory
+- run dry-run validation/finalization
+- output final order_intents with status not_sent or rejected
+- emit journal_events and QA reports
+- keep everything fully offline
+
+Constraints:
+- no broker calls
+- no TWS / Gateway / Web API
+- no fills
+- no submitted status
+- broker_contract_id stays null
+- limit_price stays null
+- tests must be synthetic and offline
+
+Please:
+1. create the implementation
+2. add/update tests
+3. add README and Makefile entries
+4. run:
+   - make test
+   - make wp12-broker-boundary-smoke-offline
+5. summarize:
+   - files changed
+   - key design choices
+   - any assumptions or follow-up items
